@@ -26,10 +26,17 @@ create table if not exists agent
 -- Insert first company with a user and one agent.
 
 insert into company (id, name)
-values(1,"ensiie");
+values(1,'ensiie');
+
+insert into company (id, name)
+values(2,'tsp');
 
 insert into users (id, username, password, id_company)
 values (1, 'ferris', '$argon2id$v=19$m=19456,t=2,p=1$VE0e3g7DalWHgDwou3nuRA$uC6TER156UQpk0lNQ5+jHM0l5poVjPA1he/Tyn9J4Zw', 1);
 
 insert into agent(id, name, token, id_company)
-values(1, "first agent", "secrettokenreversible", 1);
+values(1, 'first Ensiie agent', 'secrettokenreversible', 1);
+insert into agent(id, name, token, id_company)
+values(2, 'tps agent', 'secrettokenreversible', 2);
+insert into agent(id, name, token, id_company)
+values(3, 'second Ensiie agent', 'secrettokenreversible2', 1);

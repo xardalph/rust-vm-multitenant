@@ -19,11 +19,12 @@ pub struct App {
 impl App {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         println!("new");
-        let db_url = "sqlite:///tmp/rust-nosql-sqlite.sql";
+        //let db_url = "sqlite:";
+        let db_url = "postgres://postgres:password@127.0.0.1:5432/postgres";
         install_default_drivers();
-        if !sqlx::Sqlite::database_exists(&db_url).await? {
-            sqlx::Sqlite::create_database(&db_url).await?;
-        }
+        //if !sqlx::Sqlite::database_exists(&db_url).await? {
+        //    sqlx::Sqlite::create_database(&db_url).await?;
+        //}
         let db = sqlx::AnyPool::connect(db_url).await?;
         sqlx::migrate!().run(&db).await?;
         println!("new ended");
