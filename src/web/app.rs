@@ -1,17 +1,22 @@
 use std::sync::Arc;
 
 use crate::{
-    users::Backend,
-    web::{auth, protected, public},
+    users::Backend as usersBackend,
+    web::{
+        auth,
+        middleware::agent_token_validation::{self, check_api_token_against_agent_table},
+        protected, public, victoria_api,
+    },
 };
-use axum_login::{login_required, AuthManagerLayerBuilder};
+use axum::middleware;
+use axum_login::{AuthManagerLayerBuilder, login_required};
 use axum_messages::MessagesManagerLayer;
-use sqlx::{any::install_default_drivers, migrate::MigrateDatabase, Pool as sqlxPool};
+use sqlx::{Pool as sqlxPool, any::install_default_drivers, migrate::MigrateDatabase};
 use time::Duration;
 use tokio::{signal, task::AbortHandle};
 use tower_sessions::cookie::Key;
 use tower_sessions::{Expiry, SessionManagerLayer};
-use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
+use tower_sessions_redis_store::{RedisStore, fred::prelude::*};
 pub struct App {
     db: sqlxPool<sqlx::Any>,
 }
@@ -57,15 +62,19 @@ impl App {
         //
         // This combines the session layer with our backend to establish the auth
         // service which will provide the auth session as a request extension.
-        let backend = Backend::new(self.db.clone());
-        let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
+        let user_backend = usersBackend::new(self.db.clone());
+        let user_auth_layer =
+            AuthManagerLayerBuilder::new(user_backend, session_layer.clone()).build();
         let app = protected::router()
-            .route_layer(login_required!(Backend, login_url = "/login"))
+            .route_layer(login_required!(usersBackend, login_url = "/login"))
             .merge(auth::router())
             .merge(public::router())
+            .merge(victoria_api::router().layer(middleware::from_fn_with_state(
+                self.db.clone(),
+                check_api_token_against_agent_table,
+            )))
             .layer(MessagesManagerLayer)
-            .layer(auth_layer)
-            // TODO: cloning here to have one db con for the auth lib and one for myself, maybe there is a way to have only one ?
+            .layer(user_auth_layer)
             .with_state(self.db.clone());
 
         println!("listening to port 3000");
@@ -76,7 +85,7 @@ impl App {
             //.with_graceful_shutdown(shutdown_signal(deletion_task.abort_handle()))
             .await?;
 
-        // deletion_task.await??;
+        //deletion_task.await??;
 
         Ok(())
     }

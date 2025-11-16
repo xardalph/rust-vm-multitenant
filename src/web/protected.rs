@@ -1,11 +1,11 @@
 use crate::web::extractor::current_user::*;
 use askama::Template;
 use axum::{
+    Router,
     extract::State,
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::{get, post},
-    Router,
 };
 use axum_messages::{Message, Messages};
 
@@ -27,7 +27,7 @@ pub fn router() -> Router<sqlxPool<sqlx::Any>> {
 }
 mod agent {
     use super::*;
-    use axum::{extract::Path, Json};
+    use axum::{Json, extract::Path};
     use futures_util::TryStreamExt;
     use sqlx::Row;
     #[derive(serde::Serialize)]
