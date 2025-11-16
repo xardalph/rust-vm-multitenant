@@ -8,7 +8,7 @@ use crate::{
         protected, public, victoria_api,
     },
 };
-use axum::middleware;
+use axum::{extract::FromRef, middleware};
 use axum_login::{AuthManagerLayerBuilder, login_required};
 use axum_messages::MessagesManagerLayer;
 use sqlx::{Pool as sqlxPool, any::install_default_drivers, migrate::MigrateDatabase};
@@ -17,10 +17,23 @@ use tokio::{signal, task::AbortHandle};
 use tower_sessions::cookie::Key;
 use tower_sessions::{Expiry, SessionManagerLayer};
 use tower_sessions_redis_store::{RedisStore, fred::prelude::*};
+
+#[derive(Debug, Clone)]
 pub struct App {
     db: sqlxPool<sqlx::Any>,
+    http: reqwest::Client,
 }
-
+// this allow to retrieve each tool from the main App struct in each controller without taking the whole object each time.
+impl FromRef<App> for sqlxPool<sqlx::Any> {
+    fn from_ref(app_state: &App) -> sqlxPool<sqlx::Any> {
+        app_state.db.clone()
+    }
+}
+impl FromRef<App> for reqwest::Client {
+    fn from_ref(app_state: &App) -> reqwest::Client {
+        app_state.http.clone()
+    }
+}
 impl App {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         println!("new");
@@ -32,8 +45,11 @@ impl App {
         //}
         let db = sqlx::AnyPool::connect(db_url).await?;
         sqlx::migrate!().run(&db).await?;
-        println!("new ended");
-        Ok(Self { db: db })
+        let http_client = reqwest::Client::builder().build()?;
+        Ok(Self {
+            db: db,
+            http: http_client,
+        })
     }
 
     pub async fn serve(self) -> Result<(), Box<dyn std::error::Error>> {
@@ -75,7 +91,7 @@ impl App {
             )))
             .layer(MessagesManagerLayer)
             .layer(user_auth_layer)
-            .with_state(self.db.clone());
+            .with_state(self.clone());
 
         println!("listening to port 3000");
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

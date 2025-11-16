@@ -1,16 +1,19 @@
 use askama::Template;
 use axum::{
+    Form, Router,
     extract::Query,
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
     routing::{get, post},
-    Form, Router,
 };
 use axum_messages::{Message, Messages};
 use serde::Deserialize;
-use sqlx::AnyPool;
+use sqlx::{AnyPool, Pool};
 
-use crate::users::{AuthSession, Credentials};
+use crate::{
+    users::{AuthSession, Credentials},
+    web::App,
+};
 
 #[derive(Template)]
 #[template(path = "login.html")]
@@ -26,7 +29,7 @@ pub struct NextUrl {
     next: Option<String>,
 }
 
-pub fn router() -> Router<AnyPool> {
+pub fn router() -> Router<App> {
     Router::new()
         .route("/login", post(self::post::login))
         .route("/login", get(self::get::login))

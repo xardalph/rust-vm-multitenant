@@ -1,4 +1,4 @@
-use crate::web::extractor::current_user::*;
+use crate::web::{App, extractor::current_user::*};
 use askama::Template;
 use axum::{
     Router,
@@ -19,7 +19,7 @@ struct ProtectedTemplate<'a> {
     username: &'a str,
 }
 
-pub fn router() -> Router<sqlxPool<sqlx::Any>> {
+pub fn router() -> Router<App> {
     Router::new()
         .route("/", get(self::get::protected))
         .route("/agent", get(self::agent::get).post(self::agent::post))

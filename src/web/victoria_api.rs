@@ -11,22 +11,57 @@ use serde::Deserialize;
 use sqlx::Pool as sqlxPool;
 use sqlx::{AnyPool, SqlitePool};
 
-use crate::users::{AuthSession, Credentials};
+use crate::{
+    users::{AuthSession, Credentials},
+    web::App,
+};
 
-pub fn router() -> Router<sqlxPool<sqlx::Any>> {
-    Router::new()
-        .route("/insert", get(self::get::test))
-        .route("/select", get(self::get::test2))
+pub fn router() -> Router<App> {
+    Router::new().route("/insert", post(self::post::insert))
+    //.route("/select", post(self::post::insert))
 }
 
-mod get {
-    use super::*;
-    use crate::users::AuthSession;
+mod post {
+    use axum::{
+        Extension,
+        extract::{self, State},
+    };
+    use axum_login::tracing::debug;
+    use serde::Serialize;
 
-    pub async fn test() -> impl IntoResponse {
-        "html message".into_response()
+    use super::*;
+    use crate::{
+        model::{Agent, VictoriaInsert},
+        users::AuthSession,
+    };
+
+    pub async fn insert(
+        Extension(agent): Extension<Agent>,
+        State(db): State<sqlxPool<sqlx::Any>>,
+        State(client): State<reqwest::Client>,
+        extract::Json(payload): extract::Json<VictoriaInsert>,
+    ) -> impl IntoResponse {
+        let url = format!(
+            "http://localhost:8427/insert/0/prometheus/api/v1/import",
+            //agent.id_company
+        );
+        debug!(
+            "trying to request url {} with body {}",
+            url,
+            serde_json::to_string(&payload).unwrap()
+        );
+        let res = client
+            .post(url)
+            .basic_auth("foo", Some("bar"))
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&payload).unwrap())
+            .send()
+            .await
+            .unwrap();
+        debug!("sent a post request, result : {:?}", res);
+        format!("got a json payload : {:?}", payload).into_response()
     }
-    pub async fn test2(auth_session: AuthSession, messages: Messages) -> impl IntoResponse {
+    pub async fn select(auth_session: AuthSession, messages: Messages) -> impl IntoResponse {
         "html message from page 2".into_response()
     }
 }

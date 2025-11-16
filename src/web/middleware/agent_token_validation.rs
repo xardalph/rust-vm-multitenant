@@ -14,7 +14,7 @@ use sqlx::Row;
 
 pub async fn check_api_token_against_agent_table(
     State(db): State<sqlxPool<sqlx::Any>>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
     //retrieve the Authorization http header, and check it start with Baerer
@@ -33,33 +33,28 @@ pub async fn check_api_token_against_agent_table(
     };
     let token = &auth_header[7..].to_string();
     // check the token against the client
-    let mut rows = sqlx::query("SELECT name, token FROM agent WHERE token = $1")
-        .bind(token)
-        .fetch(&db);
+    let agent: Result<Agent, sqlx::Error> = sqlx::query_as::<_, Agent>(
+        "
+            SELECT id, name, token, id_company
+            FROM agent
+            WHERE token = $1
+        ",
+    )
+    .bind(token)
+    .fetch_one(&db)
+    .await;
 
-    match rows.try_next().await.unwrap() {
-        Some(row) => {
-            let id = row
-                .try_get::<&str, &str>("id")
-                .unwrap()
-                .parse::<i64>()
-                .unwrap();
-            let name = row.try_get::<&str, &str>("name").unwrap().to_string();
-            let token = row.try_get::<&str, &str>("token").unwrap().to_string();
-            let id_company = row.unwrap().parse::<i64>().unwrap();
-            let a = Agent {
-                id,
-                name,
-                token,
-                id_company,
-            };
+    // TODO if there is two agent with the same token there is a bug, should disable both by default.
+    match agent {
+        Ok(a) => {
+            debug!("found agent {} in db.", a.name);
+            req.extensions_mut().insert(a);
             return Ok(next.run(req).await);
         }
-        None => {
+        Err(e) => {
             return Err(StatusCode::UNAUTHORIZED);
         }
-    };
-    // TODO if there is two agent with the same token there is a bug, disabling both by default.
+    }
 
-    // If the API key matches, proceed to the next handler
+    // If agent exist, proceed to the next handler
 }

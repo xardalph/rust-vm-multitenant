@@ -1,19 +1,22 @@
 use askama::Template;
 use axum::{
+    Form, Router,
     extract::Query,
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
     routing::{get, post},
-    Form, Router,
 };
 use axum_messages::{Message, Messages};
 use serde::Deserialize;
 use sqlx::Pool as sqlxPool;
 use sqlx::{AnyPool, SqlitePool};
 
-use crate::users::{AuthSession, Credentials};
+use crate::{
+    users::{AuthSession, Credentials},
+    web::App,
+};
 
-pub fn router() -> Router<sqlxPool<sqlx::Any>> {
+pub fn router() -> Router<App> {
     Router::new()
         .route("/test", get(self::get::test))
         .route("/test2", get(self::get::test2))

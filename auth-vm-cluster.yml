@@ -2,9 +2,11 @@
 # see https://docs.victoriametrics.com/victoriametrics/vmauth/#load-balancing.
 # Note: if username and password are changes, please update the Grafana datasource configuration
 # and check other places where these credentials are used.
+
 users:
   - username: "foo"
     password: "bar"
+    dump_request_on_errors: true
     url_map:
       - src_paths:
           - "/select/.*"
