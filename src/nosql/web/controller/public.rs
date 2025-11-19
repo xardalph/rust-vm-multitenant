@@ -11,7 +11,7 @@ use serde::Deserialize;
 use sqlx::Pool as sqlxPool;
 use sqlx::{AnyPool, SqlitePool};
 
-use crate::{
+use super::super::super::{
     users::{AuthSession, Credentials},
     web::App,
 };
@@ -23,8 +23,8 @@ pub fn router() -> Router<App> {
 }
 
 mod get {
+    use super::super::super::super::users::AuthSession;
     use super::*;
-    use crate::users::AuthSession;
 
     pub async fn test() -> impl IntoResponse {
         "html message".into_response()

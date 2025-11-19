@@ -26,7 +26,7 @@ pub struct Agent {
 }
 // ex : {"metric":{"__name__":"evan-metric1","job":"curl","instance":"vmagent:8429"},"values":[100,300],"timestamps":[1763074402660,1763074402661]}
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VictoriaInsert {
+pub struct VictoriaMetric {
     pub metric: HashMap<String, String>,
     pub values: Vec<f64>,
     pub timestamps: Vec<i64>,

@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
-use crate::{
-    users::Backend as usersBackend,
-    web::{
-        auth,
-        middleware::agent_token_validation::{self, check_api_token_against_agent_table},
-        protected, public, victoria_api,
-    },
+use super::super::users::Backend as usersBackend;
+use super::super::web::middleware::agent_token_validation::{
+    self, check_api_token_against_agent_table,
 };
+use crate::nosql::web::controller::auth;
+use crate::nosql::web::controller::{protected, public, victoria_api};
 use axum::{extract::FromRef, middleware};
 use axum_login::{AuthManagerLayerBuilder, login_required};
 use axum_messages::MessagesManagerLayer;

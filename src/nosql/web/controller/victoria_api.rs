@@ -11,7 +11,7 @@ use serde::Deserialize;
 use sqlx::Pool as sqlxPool;
 use sqlx::{AnyPool, SqlitePool};
 
-use crate::{
+use super::super::super::{
     users::{AuthSession, Credentials},
     web::App,
 };
@@ -29,17 +29,17 @@ mod post {
     use axum_login::tracing::debug;
     use serde::Serialize;
 
-    use super::*;
-    use crate::{
-        model::{Agent, VictoriaInsert},
+    use super::super::super::super::{
+        model::{Agent, VictoriaMetric},
         users::AuthSession,
     };
+    use super::*;
 
     pub async fn insert(
         Extension(agent): Extension<Agent>,
         State(db): State<sqlxPool<sqlx::Any>>,
         State(client): State<reqwest::Client>,
-        extract::Json(payload): extract::Json<VictoriaInsert>,
+        extract::Json(payload): extract::Json<VictoriaMetric>,
     ) -> impl IntoResponse {
         let url = format!(
             "http://localhost:8427/insert/0/prometheus/api/v1/import",

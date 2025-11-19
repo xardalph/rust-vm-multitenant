@@ -1,18 +1,8 @@
 [package]
-name = "nosql-ensiie"
+name = "nosqlensiie"
 version = "0.1.0"
 edition = "2024"
 publish = false
-default-run = "web"
-
-[[bin]]
-name = "web"
-default-run = true
-path = "src/main.rs"
-
-[[bin]]
-name = "agent"
-path = "src/agent/main.rs"
 
 [lints.rust]
 unused_imports = "allow"

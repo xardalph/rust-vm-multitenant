@@ -1,9 +1,9 @@
 use axum::{
     extract::FromRequestParts,
-    http::{request::Parts, StatusCode},
+    http::{StatusCode, request::Parts},
 };
 
-use crate::users::{self, User};
+use super::super::super::users::{self, User};
 
 #[derive(Debug)]
 pub struct CurrentUser {
