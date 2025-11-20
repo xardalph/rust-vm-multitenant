@@ -86,13 +86,15 @@ async fn process_container(docker: Docker, container: Container, http: Client) {
     let timestamp = Instant::now();
     let mut old_value: Option<ContainerInfo> = None;
     let mut new_value: Option<ContainerInfo> = None;
-    for i in (1..3) {
+    for i in (1..30) {
+        println!("i is : {i}");
         let Some(some_stats) = docker.containers().get(&container.id).stats().next().await else {
             continue;
         };
         let Ok(stats) = some_stats else {
             continue;
         };
+
         let duration = Instant::now();
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -121,6 +123,7 @@ async fn process_container(docker: Docker, container: Container, http: Client) {
         let old_value_clone = old_value.clone();
         match old_value_clone {
             None => {
+                info!("old value is empty, probably initialising the thread.");
                 old_value = new_value;
                 continue;
             }
@@ -138,7 +141,7 @@ async fn process_container(docker: Docker, container: Container, http: Client) {
                 println!("sending data {:#?} at {}", body, timestamp);
                 let req = http
                     .post(url)
-                    .header("Authorization", "Baerer secrettokenreversible2")
+                    .header("Authorization", "Bearer secrettokenreversible")
                     .header("Content-Type", "application/json")
                     .body(body);
                 println!("{:#?}", req);

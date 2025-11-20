@@ -42,22 +42,26 @@ mod post {
         extract::Json(payload): extract::Json<VictoriaMetric>,
     ) -> impl IntoResponse {
         let url = format!(
-            "http://localhost:8427/insert/0/prometheus/api/v1/import",
-            //agent.id_company
+            "http://localhost:8427/insert/{}/prometheus/api/v1/import",
+            agent.id_company
         );
         debug!(
             "trying to request url {} with body {}",
             url,
             serde_json::to_string(&payload).unwrap()
         );
-        let res = client
+        let req = client
             .post(url)
             .basic_auth("foo", Some("bar"))
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&payload).unwrap())
+            .body(serde_json::to_string(&payload).unwrap());
+        let res = req
             .send()
             .await
-            .unwrap();
+            .or_else(|e| -> Result<reqwest::Response, _> {
+                println!("err : {:?}", &e);
+                Err { 0: e }
+            });
         debug!("sent a post request, result : {:?}", res);
         format!("got a json payload : {:?}", payload).into_response()
     }

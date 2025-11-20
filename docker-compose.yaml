@@ -84,7 +84,6 @@ services:
       - ./auth-vm-cluster.yml:/etc/auth.yml
     command:
       - "--auth.config=/etc/auth.yml"
-      - "--loggerLevel "
     ports:
       - 8427:8427
 
