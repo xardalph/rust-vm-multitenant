@@ -7,10 +7,13 @@ use docker_api::Docker;
 use docker_api::models::{ContainerState, ContainerStateStatusInlineItem};
 use docker_api::opts::ContainerListOpts;
 use futures::{Stream, StreamExt};
+use nosqlensiie::nosql::model::VictoriaMetric;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::thread::sleep;
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use std::{thread, time};
 use tokio::task::JoinHandle;
 #[cfg(unix)]
@@ -78,20 +81,71 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 async fn process_container(docker: Docker, container: Container, http: Client) {
-    println!("started process_container, sleeping 2 sec");
+    println!("started process_container");
     //thread::sleep(time::Duration::from_millis(900));
     let timestamp = Instant::now();
-
-    for i in (1..10) {
+    let mut old_value: Option<ContainerInfo> = None;
+    let mut new_value: Option<ContainerInfo> = None;
+    for i in (1..3) {
         let Some(some_stats) = docker.containers().get(&container.id).stats().next().await else {
             continue;
         };
         let Ok(stats) = some_stats else {
             continue;
         };
-        let timestamp = Instant::now();
-        let cpu_kernel = stats.pointer("/cpu_stats/cpu_usage/usage_in_kernelmode");
-        let cpu_user = stats.pointer("/cpu_stats/cpu_usage/usage_in_usermode");
+        let duration = Instant::now();
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+        // to manage unwrap we should take current timestamp, and maybe use it for duration compute ?
+        let _ = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        //println!("{stats:#?}");
+        let Some(cpu_kernel) = stats.pointer("/cpu_stats/cpu_usage/usage_in_kernelmode") else {
+            continue;
+        };
+        let Some(cpu_user) = stats.pointer("/cpu_stats/cpu_usage/usage_in_usermode") else {
+            continue;
+        };
+
+        new_value = Some(ContainerInfo {
+            cpu_kernel: cpu_kernel.as_f64().unwrap(),
+            cpu_user: cpu_user.as_i64().unwrap(),
+            timestamp: duration,
+        });
+
+        let old_value_clone = old_value.clone();
+        match old_value_clone {
+            None => {
+                old_value = new_value;
+                continue;
+            }
+            Some(old) => {
+                let mut hash = HashMap::new();
+                hash.insert("__name__".to_string(), "cpu_kernel".to_string());
+                let metric = VictoriaMetric {
+                    metric: hash,
+                    values: vec![new_value.unwrap().cpu_kernel.into()],
+                    timestamps: vec![timestamp],
+                };
+                // let's send the new data diff to the server
+                let url = "http://localhost:3000/insert";
+                let body = serde_json::to_string(&metric).unwrap();
+                println!("sending data {:#?} at {}", body, timestamp);
+                let req = http
+                    .post(url)
+                    .header("Authorization", "Baerer secrettokenreversible2")
+                    .header("Content-Type", "application/json")
+                    .body(body);
+                println!("{:#?}", req);
+                let err = req.send().await;
+                println!("response : {:?}", err);
+            }
+        }
         // todo : compute ram real usage (usage less each cache)
         // let mem_usage = stats.pointer("/memory_stats/usage");
         // let mem_limit = stats.pointer("/memory_stats/limit");
@@ -100,11 +154,12 @@ async fn process_container(docker: Docker, container: Container, http: Client) {
         // for now no cache system is set before sending data to the server, so there will be one request per container per second
     }
 }
+#[derive(Debug, Clone)]
 struct ContainerInfo {
-    cpu_kernel: i64,
+    cpu_kernel: f64,
     cpu_user: i64,
-    ram_absolute: i64,
-    ram_percentage: i64,
+    //ram_absolute: i64,
+    //ram_percentage: i64,
     timestamp: Instant,
 }
 struct Container {
