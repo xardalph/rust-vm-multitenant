@@ -9,6 +9,7 @@ use axum::{
     response::{Html, IntoResponse},
     routing::{get, post},
 };
+
 use axum_messages::{Message, Messages};
 use sqlx::Pool as sqlxPool;
 
@@ -24,6 +25,46 @@ pub fn router() -> Router<App> {
         .route("/", get(self::get::protected))
         .route("/agent", get(self::agent::get).post(self::agent::post))
         .route("/agent/{name}", get(self::agent::get_one))
+        .route("/select", post(self::victoria_api::select))
+}
+mod victoria_api {
+    use axum::extract::{self, Request};
+    use axum_login::tracing::{debug, error};
+
+    use crate::nosql::{model::VictoriaMetric, web::app::VictoriaEndpoint};
+
+    use super::*;
+    use bytes::Bytes;
+    pub async fn select(
+        user: CurrentUser,
+        State(client): State<reqwest::Client>,
+        State(vm_url): State<VictoriaEndpoint>,
+        body: Bytes,
+    ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
+        let url = format!(
+            "{}/select/{}/prometheus/api/v1/export",
+            vm_url.url, user.id_company
+        );
+        error!("trying request {url}");
+        let req = client
+            .post(url)
+            .basic_auth("foo", Some("bar"))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body);
+        error!("body : {:#?}", &req);
+
+        let res = req
+            .send()
+            .await
+            .or_else(|e| -> Result<reqwest::Response, _> {
+                error!("http error on VM select : {:?}", &e);
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            })?;
+        error!("VM response : {:#?}", &res);
+
+        return Ok((res.status(), res.bytes().await.unwrap()));
+        //return Err(StatusCode::NOT_IMPLEMENTED);
+    }
 }
 mod agent {
     use super::*;

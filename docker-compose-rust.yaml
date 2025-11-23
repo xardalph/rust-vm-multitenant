@@ -1,0 +1,15 @@
+name: nosql-rust
+services:
+  backend:
+    container_name: backend
+    build: ./
+    env_file: ".env"
+    ports:
+      - 3000:3000
+
+  agent:
+    build: ./
+    env_file: ".env"
+    entrypoint: "agent"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
