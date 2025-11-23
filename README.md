@@ -47,6 +47,32 @@ TODO. Need to add label at least on the rust server to have https serving, and p
 docker compose -f docker-compose.yaml -f docker-compose-rust.yaml up -d
 ```
 
+## technical architecture
+
+VM (victoria metric) is used to store every metrics sent.
+There is 2 rust binary :
+- agent read a docker socket and send data about each container to a defined url every second per container (use a token to authenticate)
+- server accept agent trafic and redirect it to VM.  \
+  It also accept web user to be able to manage agent configuration, and get data from VM. \
+  server is multitenant, which mean one agent configured for a company won't be seen by another company. \
+  For now company is a flat list, there is no parent and children.
+
+Redis is used for session storage (implemented by rust crate axum_login)
+
+postgresql is used to store company, user and agent configuration.
+
+
+### api connexion
+
+You can see the frontend at the root of the webapp, by default http://localhost:3000/
+
+To develop the frontend, you should use the api provided.
+
+Authenticate by post on /login url :
+curl localhost:3000/login -d 'username=usernameHere&password=YourPassword' -v
+
+Then retrieve the cookie "id" from the response, and put this cookie in all subsequent api endpoint to be authenticated.
+
 ## Roadmap
 
 
