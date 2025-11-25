@@ -8,9 +8,9 @@ use axum::{
 use axum_login::tracing::debug;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+
 use thiserror::Error;
 use uuid::Uuid;
-
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("database error")]

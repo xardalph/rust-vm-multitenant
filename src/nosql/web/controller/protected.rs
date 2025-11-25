@@ -42,21 +42,27 @@ mod victoria_api {
 
     use super::*;
     use bytes::Bytes;
+
     pub async fn select(
         user: CurrentUser,
         State(client): State<reqwest::Client>,
         State(vm_url): State<VictoriaEndpoint>,
+        State(db): State<sqlxPool<sqlx::Postgres>>,
         body: Bytes,
     ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
         let url = format!(
             "{}/select/{}/prometheus/api/v1/export",
-            vm_url.url, user.id_company
+            vm_url.url,
+            user.id_victoria(db)
+                .await
+                .or_else(|e| Err(StatusCode::FORBIDDEN))?
         );
         error!("trying request {url}");
         let req = client
             .post(url)
-            .basic_auth("foo", Some("bar"))
+            //.basic_auth("foo", Some("bar"))
             .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("authorization", "Basic Zm9vOmJhcg==")
             .body(body);
         error!("body : {:#?}", &req);
 
