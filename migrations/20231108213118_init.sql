@@ -1,13 +1,17 @@
 -- Create company table
 create table if not exists company
 (
-    id integer primary key not null,
+    id SERIAL primary key,
     name text not null unique
 );
+ALTER SEQUENCE company_id_seq MINVALUE 0
+START 0
+RESTART 0;
+
 -- Create users table.
 create table if not exists users
 (
-    id integer primary key not null,
+    id SERIAL primary key ,
     username text not null unique,
     password text not null,
     id_company integer not null,
@@ -16,7 +20,7 @@ create table if not exists users
 
 create table if not exists agent
 (
-    id integer primary key not null,
+    id SERIAL primary key ,
     name text not null unique,
     token text not null,
     id_company integer not null,
@@ -25,18 +29,18 @@ create table if not exists agent
 
 -- Insert first company with a user and one agent.
 
-insert into company (id, name)
-values(0,'ensiie');
+insert into company (name)
+values('ensiie');
 
-insert into company (id, name)
-values(1,'tsp');
+insert into company (name)
+values('tsp');
 
-insert into users (id, username, password, id_company)
-values (1, 'admin', '$argon2id$v=19$m=19456,t=2,p=1$VE0e3g7DalWHgDwou3nuRA$uC6TER156UQpk0lNQ5+jHM0l5poVjPA1he/Tyn9J4Zw', 0);
+insert into users ( username, password, id_company)
+values ('admin', '$argon2id$v=19$m=19456,t=2,p=1$VE0e3g7DalWHgDwou3nuRA$uC6TER156UQpk0lNQ5+jHM0l5poVjPA1he/Tyn9J4Zw', 0);
 
-insert into agent(id, name, token, id_company)
-values(1, 'first Ensiie agent', 'secrettokenreversible', 0);
-insert into agent(id, name, token, id_company)
-values(2, 'tps agent', 'secrettokenreversible', 0);
-insert into agent(id, name, token, id_company)
-values(3, 'second Ensiie agent', 'secrettokenreversible2', 1);
+insert into agent( name, token, id_company)
+values('first Ensiie agent', 'secrettokenreversible', 0);
+insert into agent( name, token, id_company)
+values('tps agent', 'secrettokenreversible', 0);
+insert into agent( name, token, id_company)
+values('second Ensiie agent', 'secrettokenreversible2', 1);

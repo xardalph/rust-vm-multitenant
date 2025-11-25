@@ -68,11 +68,13 @@ You can see the frontend at the root of the webapp, by default http://localhost:
 
 To develop the frontend, you should use the api provided.
 
-Authenticate by post on /login url :
+Authenticate by post on `/login` url :
+```
 curl localhost:3000/login -d 'username=usernameHere&password=YourPassword' -v
-
+```
 Then retrieve the cookie "id" from the response, and put this cookie in all subsequent api endpoint to be authenticated.
 
+be carefull that when you try to use the api without authentication you will get a 307 to /login page.
 ## Roadmap
 
 

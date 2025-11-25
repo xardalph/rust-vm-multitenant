@@ -31,7 +31,10 @@ mod victoria_api {
     use axum::extract::{self, Request};
     use axum_login::tracing::{debug, error};
 
-    use crate::nosql::{model::VictoriaMetric, web::app::VictoriaEndpoint};
+    use crate::nosql::{
+        model::{Agent, VictoriaMetric},
+        web::app::VictoriaEndpoint,
+    };
 
     use super::*;
     use bytes::Bytes;
@@ -67,54 +70,94 @@ mod victoria_api {
     }
 }
 mod agent {
+    use crate::nosql::model::{Agent, AppError, PubAgent};
+
     use super::*;
-    use axum::{Json, extract::Path};
+    use axum::{
+        Json,
+        extract::{self, Path},
+    };
+
+    use axum_login::tracing::info;
     use futures_util::TryStreamExt;
     use sqlx::Row;
-    #[derive(serde::Serialize)]
-    pub struct Agent {
-        name: String,
-        token: String,
-    }
+
     pub async fn get_one(
-        Path(key): Path<String>,
+        Path(agent_name): Path<String>,
         user: CurrentUser,
         State(db): State<sqlxPool<sqlx::Any>>,
-    ) -> Result<(http::StatusCode, axum::Json<Vec<Agent>>), http::StatusCode> {
-        // TODO : implement a get for only one agent by name, searching only for agent in the company of the logger user.
+    ) -> Result<(http::StatusCode, axum::Json<Option<Agent>>), AppError> {
         // If no agent found (or agent for another company) -> 404
-        return Err(StatusCode::NOT_IMPLEMENTED);
+        let agent: Option<Agent> = sqlx::query_as::<_, Agent>(
+            "
+                SELECT *
+                FROM agent
+                WHERE id_company = $1 and name = $2
+            ",
+        )
+        .bind(user.id_company)
+        .bind(agent_name.to_string())
+        .fetch_optional(&db)
+        .await?;
+        match agent {
+            Some(a) => {
+                return Ok((StatusCode::OK, Json(Some(a))));
+            }
+            None => return Ok((StatusCode::NOT_FOUND, Json(None))),
+        }
     }
+
     pub async fn get(
         user: CurrentUser,
         State(db): State<sqlxPool<sqlx::Any>>,
-    ) -> Result<(http::StatusCode, axum::Json<Vec<Agent>>), http::StatusCode> {
-        let mut rows = sqlx::query("SELECT * FROM agent WHERE id_company = $1")
-            .bind(user.id_company)
-            .fetch(&db);
-        let mut agents = vec![];
-        while let Some(row) = rows.try_next().await.unwrap() {
-            // map the row into a user-defined domain type
-
-            let name = row.try_get::<&str, &str>("name").unwrap().to_string();
-            let token = row.try_get::<&str, &str>("token").unwrap().to_string();
-            agents.push(Agent { name, token });
-        }
-
+    ) -> Result<(http::StatusCode, axum::Json<Vec<Agent>>), AppError> {
+        let agents: Vec<Agent> = sqlx::query_as::<_, Agent>(
+            "
+                SELECT *
+                FROM agent
+                WHERE id_company = $1
+            ",
+        )
+        .bind(user.id_company)
+        .fetch_all(&db)
+        .await?;
         return Ok((StatusCode::OK, Json(agents)));
     }
+
     pub async fn post(
-        // access the state via the `State` extractor
-        // extracting a state of the wrong type results in a compile error
-        State(state): State<sqlxPool<sqlx::Any>>,
-    ) -> Result<(http::StatusCode, axum::Json<Agent>), http::StatusCode> {
-        return Ok((
-            StatusCode::OK,
-            Json(Agent {
-                name: "agent1".to_string(),
-                token: "tken".to_string(),
-            }),
-        ));
+        user: CurrentUser,
+        State(db): State<sqlxPool<sqlx::Any>>,
+        extract::Json(new_agent): extract::Json<PubAgent>,
+    ) -> Result<impl IntoResponse, AppError> {
+        if new_agent.name == "" {
+            return Err(AppError::EmptyArgument);
+        }
+        let result = sqlx::query(
+            "
+                INSERT INTO agent(name, token, id_company)
+                values($1,$2,$3)
+            ",
+        )
+        .bind(new_agent.name)
+        .bind(new_agent.token)
+        .bind(user.id_company)
+        .execute(&db)
+        .await;
+        match result {
+            Ok(_) => Ok((StatusCode::CREATED, Json("created agent."))),
+            Err(e) => {
+                if let Some(db_err) = e.as_database_error() {
+                    if let Some(code) = db_err.code() {
+                        // 23505 = unique_violation
+                        if code == "23505" {
+                            return Err(AppError::AlreadyUsed);
+                        }
+                    }
+                }
+                // Other SQL or unexpected error
+                Err(e.into())
+            }
+        }
     }
 }
 mod get {
