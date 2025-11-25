@@ -24,7 +24,11 @@ pub fn router() -> Router<App> {
     Router::new()
         .route("/", get(self::get::protected))
         .route("/agent", get(self::agent::get).post(self::agent::post))
-        .route("/agent/{name}", get(self::agent::get_one))
+        .route(
+            "/agent/{name}",
+            get(self::agent::get_one).delete(self::agent::delete),
+        )
+        // this is Victoria metric endpoint
         .route("/select", post(self::victoria_api::select))
 }
 mod victoria_api {
@@ -81,11 +85,12 @@ mod agent {
     use axum_login::tracing::info;
     use futures_util::TryStreamExt;
     use sqlx::Row;
+    use uuid::Uuid;
 
     pub async fn get_one(
         Path(agent_name): Path<String>,
         user: CurrentUser,
-        State(db): State<sqlxPool<sqlx::Any>>,
+        State(db): State<sqlxPool<sqlx::Postgres>>,
     ) -> Result<(http::StatusCode, axum::Json<Option<Agent>>), AppError> {
         // If no agent found (or agent for another company) -> 404
         let agent: Option<Agent> = sqlx::query_as::<_, Agent>(
@@ -106,10 +111,60 @@ mod agent {
             None => return Ok((StatusCode::NOT_FOUND, Json(None))),
         }
     }
+    pub async fn delete(
+        Path(agent_id): Path<Uuid>,
+        user: CurrentUser,
+        State(db): State<sqlxPool<sqlx::Postgres>>,
+    ) -> Result<(http::StatusCode), AppError> {
+        // If no agent found (or agent for another company) -> 404
+        let agent: Option<Agent> = sqlx::query_as::<_, Agent>(
+            "
+                SELECT *
+                FROM agent
+                WHERE id_company = $1 and id = $2
+            ",
+        )
+        .bind(user.id_company)
+        .bind(agent_id)
+        .fetch_optional(&db)
+        .await?;
+
+        match agent {
+            None => return Ok(StatusCode::NOT_FOUND),
+            Some(a) => {
+                match sqlx::query(
+                    "
+                        delete from agent WHERE id_company = $1 and id = $2
+                    ",
+                )
+                .bind(user.id_company)
+                .bind(agent_id)
+                .execute(&db)
+                .await
+                {
+                    Ok(_) => {
+                        return Ok(StatusCode::OK);
+                    }
+                    Err(e) => {
+                        if let Some(db_err) = e.as_database_error() {
+                            if let Some(code) = db_err.code() {
+                                // 23505 = unique_violation
+                                if code == "23505" {
+                                    return Err(AppError::AlreadyUsed);
+                                }
+                            }
+                        }
+                        // Other SQL or unexpected error
+                        Err(e.into())
+                    }
+                }
+            }
+        }
+    }
 
     pub async fn get(
         user: CurrentUser,
-        State(db): State<sqlxPool<sqlx::Any>>,
+        State(db): State<sqlxPool<sqlx::Postgres>>,
     ) -> Result<(http::StatusCode, axum::Json<Vec<Agent>>), AppError> {
         let agents: Vec<Agent> = sqlx::query_as::<_, Agent>(
             "
@@ -126,7 +181,7 @@ mod agent {
 
     pub async fn post(
         user: CurrentUser,
-        State(db): State<sqlxPool<sqlx::Any>>,
+        State(db): State<sqlxPool<sqlx::Postgres>>,
         extract::Json(new_agent): extract::Json<PubAgent>,
     ) -> Result<impl IntoResponse, AppError> {
         if new_agent.name == "" {

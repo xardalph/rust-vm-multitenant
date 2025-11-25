@@ -9,6 +9,7 @@ use axum_login::tracing::debug;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use thiserror::Error;
+use uuid::Uuid;
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -41,30 +42,39 @@ impl IntoResponse for AppError {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Company {
-    #[serde(skip_serializing)]
-    pub id: i64,
+    pub id: Uuid,
     pub name: String,
+    #[serde(skip_serializing)]
+    pub id_victoria: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
-    #[serde(skip_serializing)]
-    pub id: i64,
+    pub id: Uuid,
     pub username: String,
     #[serde(skip_serializing)]
     pub password: String,
-    #[serde(skip_serializing)]
-    pub id_company: i64,
+    pub id_company: Uuid,
+}
+// Here we've implemented `Debug` manually to avoid accidentally logging the
+// password hash.
+impl std::fmt::Debug for User {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("User")
+            .field("id", &self.id)
+            .field("username", &self.username)
+            .field("password", &"[redacted]")
+            .field("id_company", &self.id_company)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Agent {
-    #[serde(skip_serializing)]
-    pub id: i64,
+    pub id: Uuid,
     pub name: String,
     pub token: String,
-    #[serde(skip_serializing)]
-    pub id_company: i64,
+    pub id_company: Uuid,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct PubAgent {

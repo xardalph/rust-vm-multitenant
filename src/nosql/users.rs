@@ -1,32 +1,14 @@
 use axum_login::{AuthUser, AuthnBackend, UserId};
 use password_auth::verify_password;
 use serde::{Deserialize, Serialize};
-use sqlx::{AnyPool, FromRow, SqlitePool};
+use sqlx::{AnyPool, FromRow, PgPool, SqlitePool};
 use tokio::task;
+use uuid::Uuid;
 
-#[derive(Clone, Serialize, Deserialize, FromRow)]
-pub struct User {
-    pub id: i64,
-    pub username: String,
-    password: String,
-    pub id_company: i64,
-}
-
-// Here we've implemented `Debug` manually to avoid accidentally logging the
-// password hash.
-impl std::fmt::Debug for User {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("User")
-            .field("id", &self.id)
-            .field("username", &self.username)
-            .field("password", &"[redacted]")
-            .field("id_company", &self.id_company)
-            .finish()
-    }
-}
+use crate::nosql::model::User;
 
 impl AuthUser for User {
-    type Id = i64;
+    type Id = Uuid;
 
     fn id(&self) -> Self::Id {
         self.id
@@ -51,11 +33,11 @@ pub struct Credentials {
 
 #[derive(Debug, Clone)]
 pub struct Backend {
-    db: AnyPool,
+    db: PgPool,
 }
 
 impl Backend {
-    pub fn new(db: AnyPool) -> Self {
+    pub fn new(db: PgPool) -> Self {
         Self { db: db }
     }
 }

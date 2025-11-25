@@ -18,8 +18,8 @@ use super::super::super::{
 
 pub fn router() -> Router<App> {
     Router::new()
-        .route("/test", get(self::get::test))
-        .route("/test2", get(self::get::test2))
+        .route("/public", get(self::get::test))
+        .route("/public2", get(self::get::test2))
 }
 
 mod get {

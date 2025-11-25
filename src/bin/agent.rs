@@ -60,6 +60,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for container in containers {
         let http_clone = http_client.clone();
         let docker_clone = docker.clone();
+        let url = opts.url.clone();
+        let apikey = opts.apikey.clone();
         if (opts.exclude.is_some() && regex.is_match(&container.name)) {
             info!(
                 "skipping container {} because of exclude filter.",
@@ -69,16 +71,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         tasks.push(tokio::spawn(async move {
-            let _ = process_container(
-                docker_clone,
-                container,
-                http_clone,
-                opts.url.clone(),
-                opts.apikey.clone(),
-            )
-            .await;
+            let _ = process_container(docker_clone, container, http_clone, url, apikey).await;
         }));
-        break;
     }
     println!("finished spawning task.");
     for task in tasks {
@@ -95,7 +89,7 @@ async fn process_container(
     url: String,
     apikey: String,
 ) {
-    println!("started process_container");
+    println!("started process_container {}", container.name);
     //thread::sleep(time::Duration::from_millis(900));
     let timestamp = Instant::now();
     let mut old_value: Option<ContainerInfo> = None;
@@ -136,7 +130,8 @@ async fn process_container(
             Some(old) => {
                 let mut hash = HashMap::new();
                 hash.insert("__name__".to_string(), "cpu_kernel".to_string());
-                hash.insert("job".to_string(), "rust_agent".to_string());
+                hash.insert("container_name".to_string(), container.name.to_string());
+
                 let metric = VictoriaMetric {
                     metric: hash,
                     values: vec![new_value.unwrap().cpu_kernel.into()],
@@ -165,7 +160,7 @@ async fn process_container(
         // todo : compute ram real usage (usage less each cache)
         // let mem_usage = stats.pointer("/memory_stats/usage");
         // let mem_limit = stats.pointer("/memory_stats/limit");
-        info!("got stat for id {:#?}: {}", container.id, cpu_kernel);
+        trace!("got stat for id {:#?}: {}", container.id, cpu_kernel);
 
         // for now no cache system is set before sending data to the server, so there will be one request per container per second.
     }
@@ -202,6 +197,8 @@ async fn get_container_list(docker: &Docker) -> Result<Vec<Container>, Box<dyn s
             "removing" => ContainerStateStatusInlineItem::Removing,
             _ => continue, // ignore exited container and non valid.
         };
+        println!("container names: {:#?}", &container.network_settings);
+
         list.push(Container {
             id: container.id.unwrap_or_default()[..12].to_string(),
             image: container.image.unwrap_or_default(),

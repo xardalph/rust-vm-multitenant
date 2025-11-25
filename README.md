@@ -74,7 +74,14 @@ curl localhost:3000/login -d 'username=usernameHere&password=YourPassword' -v
 ```
 Then retrieve the cookie "id" from the response, and put this cookie in all subsequent api endpoint to be authenticated.
 
-be carefull that when you try to use the api without authentication you will get a 307 to /login page.
+be carefull that when you try to use the api without authentication you might get a 307 to /login page.
+
+to retrieve data you should use the `/select` endpoint :
+```
+curl -X POST http://localhost:3000/select -d 'match[]={__name__=~"cpu_kernel|process_minor_pagefaults_total"}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
+```
+
+
 ## Roadmap
 
 

@@ -13,7 +13,7 @@ use sqlx::Pool as sqlxPool;
 use sqlx::Row;
 
 pub async fn check_api_token_against_agent_table(
-    State(db): State<sqlxPool<sqlx::Any>>,
+    State(db): State<sqlxPool<sqlx::Postgres>>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {

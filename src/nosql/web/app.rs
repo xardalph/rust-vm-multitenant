@@ -1,6 +1,3 @@
-use std::clone;
-use std::sync::Arc;
-
 use super::super::users::Backend as usersBackend;
 use super::super::web::middleware::agent_token_validation::{
     self, check_api_token_against_agent_table,
@@ -8,18 +5,24 @@ use super::super::web::middleware::agent_token_validation::{
 use crate::nosql::users;
 use crate::nosql::web::controller::auth;
 use crate::nosql::web::controller::{protected, public, victoria_api};
+use axum::Json;
+use serde::{Deserialize, Serialize};
+
+use axum::response::IntoResponse;
 use axum::{extract::FromRef, middleware};
 use axum_login::tracing::info;
 use axum_login::{AuthManagerLayer, AuthManagerLayerBuilder, login_required};
 use axum_messages::MessagesManagerLayer;
+
 use clap::Parser;
 use sqlx::{Pool as sqlxPool, any::install_default_drivers, migrate::MigrateDatabase};
+use std::clone;
+use std::sync::Arc;
 use time::Duration;
 use tokio::{signal, task::AbortHandle};
 use tower_sessions::cookie::Key;
 use tower_sessions::{Expiry, SessionManagerLayer};
 use tower_sessions_redis_store::{RedisStore, fred::prelude::*};
-
 #[derive(Parser, Debug, Clone)]
 struct Opts {
     /// Database connexion string (with username, password, ip and port).
@@ -50,7 +53,7 @@ struct Opts {
 
 #[derive(Debug, Clone)]
 pub struct App {
-    db: sqlxPool<sqlx::Any>,
+    db: sqlxPool<sqlx::Postgres>,
     http: reqwest::Client,
     redis: Pool,
     victoria_metric_url: VictoriaEndpoint,
@@ -60,8 +63,8 @@ pub struct VictoriaEndpoint {
     pub url: String,
 }
 // this allow to retrieve each tool from the main App struct in each controller without taking the whole object each time.
-impl FromRef<App> for sqlxPool<sqlx::Any> {
-    fn from_ref(app_state: &App) -> sqlxPool<sqlx::Any> {
+impl FromRef<App> for sqlxPool<sqlx::Postgres> {
+    fn from_ref(app_state: &App) -> sqlxPool<sqlx::Postgres> {
         app_state.db.clone()
     }
 }
@@ -82,10 +85,8 @@ impl App {
         info!("starting server with config : {:#?}", opt);
 
         install_default_drivers();
-        //if !sqlx::Sqlite::database_exists(&db_url).await? {
-        //    sqlx::Sqlite::create_database(&db_url).await?;
-        //}
-        let db = sqlx::AnyPool::connect(&opt.db_url).await?;
+
+        let db = sqlx::PgPool::connect(&opt.db_url).await?;
         info!("connection to DB successful, applying migrations...");
         sqlx::migrate!().run(&db).await?;
 
@@ -114,11 +115,11 @@ impl App {
         let app = protected::router()
             .route_layer(login_required!(usersBackend, login_url = "/login"))
             .merge(auth::router())
-            .merge(public::router())
             .merge(victoria_api::router().layer(middleware::from_fn_with_state(
                 self.db.clone(),
                 check_api_token_against_agent_table,
             )))
+            .merge(public::router())
             .layer(MessagesManagerLayer)
             .layer(get_auth_layer(self.db.clone(), self.redis.clone()).await)
             .with_state(self.clone());
@@ -138,7 +139,7 @@ impl App {
 }
 
 pub async fn get_auth_layer(
-    db: sqlxPool<sqlx::Any>,
+    db: sqlxPool<sqlx::Postgres>,
     redis: Pool,
 ) -> AuthManagerLayer<users::Backend, RedisStore<tower_sessions_redis_store::fred::clients::Pool>> {
     // Session layer.

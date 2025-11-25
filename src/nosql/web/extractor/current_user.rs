@@ -1,14 +1,15 @@
+use super::super::super::model::User;
+use super::super::super::users::{self};
 use axum::{
     extract::FromRequestParts,
     http::{StatusCode, request::Parts},
 };
-
-use super::super::super::users::{self, User};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct CurrentUser {
-    pub id: i64,
-    pub id_company: i64,
+    pub id: Uuid,
+    pub id_company: Uuid,
 }
 
 impl<S> FromRequestParts<S> for CurrentUser

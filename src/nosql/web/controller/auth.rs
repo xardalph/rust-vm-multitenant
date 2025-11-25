@@ -15,6 +15,7 @@ use super::super::super::web::App;
 
 #[derive(Template)]
 #[template(path = "login.html")]
+
 pub struct LoginTemplate {
     messages: Vec<Message>,
     next: Option<String>,
