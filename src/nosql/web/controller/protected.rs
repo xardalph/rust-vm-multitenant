@@ -31,17 +31,17 @@ pub fn router() -> Router<App> {
             "/agent/{name}",
             get(self::agent::get_one).delete(self::agent::delete),
         )
-        // this is Victoria metric endpoint
-        .route("/select", post(self::victoria_api::select))
-        .route("/labels", get(self::victoria_api::labels))
+        // this redirect to Victoria metric api
         .route(
-            "/label/{label}/values",
-            get(self::victoria_api::label_value),
+            "/vm/{*path}",
+            get(self::victoria_api::get).post(self::victoria_api::post),
         )
 }
 mod victoria_api {
     use axum::extract::{self, Request};
     use axum_login::tracing::{debug, error, info};
+    use docker_api::models::TaskStatusInlineItemContainerStatusInlineItem;
+    use http::HeaderMap;
     use reqwest::RequestBuilder;
 
     use crate::nosql::{
@@ -52,50 +52,28 @@ mod victoria_api {
     use super::*;
     use bytes::Bytes;
 
-    pub async fn labels(
+    pub async fn get(
         user: CurrentUser,
         State(client): State<reqwest::Client>,
         State(vm_url): State<VictoriaEndpoint>,
         State(db): State<sqlxPool<sqlx::Postgres>>,
+        Path(path): Path<String>,
+        headers: HeaderMap,
     ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
         let url = format!(
-            "{}/select/{}/prometheus/api/v1/labels",
-            vm_url.url,
-            user.id_victoria(db).await.unwrap()
-        );
-        vm_passthrough(url, client, None).await
-    }
-    pub async fn label_value(
-        Path(label): Path<String>,
-        user: CurrentUser,
-        State(client): State<reqwest::Client>,
-        State(vm_url): State<VictoriaEndpoint>,
-        State(db): State<sqlxPool<sqlx::Postgres>>,
-    ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
-        let url = format!(
-            "{}/select/{}/prometheus/api/v1/label/{}/values",
+            "{}/select/{}/prometheus/api/v1/{}",
             vm_url.url,
             user.id_victoria(db).await.unwrap(),
-            label
+            path,
         );
-        vm_passthrough(url, client, None).await
-    }
+        let mut req = client.get(url);
+        for (k, v) in headers {
+            if k.is_none() {
+                continue;
+            }
+            req = req.header(k.unwrap(), v);
+        }
 
-    pub async fn vm_passthrough(
-        url: String,
-        client: reqwest::Client,
-        body: Option<Bytes>,
-    ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
-        error!("trying request {url}");
-        let req = match body {
-            Some(b) => client
-                .post(url)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .body(b),
-            None => client
-                .get(url)
-                .header("Content-Type", "application/x-www-form-urlencoded"),
-        };
         let res = req
             .send()
             .await
@@ -107,40 +85,39 @@ mod victoria_api {
 
         return Ok((res.status(), res.bytes().await.unwrap()));
     }
-    pub async fn select(
+    pub async fn post(
         user: CurrentUser,
         State(client): State<reqwest::Client>,
         State(vm_url): State<VictoriaEndpoint>,
         State(db): State<sqlxPool<sqlx::Postgres>>,
+        Path(path): Path<String>,
+        headers: HeaderMap,
         body: Bytes,
     ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
         let url = format!(
-            "{}/select/{}/prometheus/api/v1/export",
+            "{}/select/{}/prometheus/api/v1/{}",
             vm_url.url,
-            user.id_victoria(db)
-                .await
-                .or_else(|e| Err(StatusCode::FORBIDDEN))?
+            user.id_victoria(db).await.unwrap(),
+            path,
         );
-        error!("trying request {url}");
-        let req = client
-            .post(url)
-            //.basic_auth("foo", Some("bar"))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .header("authorization", "Basic Zm9vOmJhcg==")
-            .body(body);
-        error!("body : {:#?}", &req);
+        let mut req = client.post(url).body(body);
+        for (k, v) in headers {
+            if k.is_none() {
+                continue;
+            }
+            req = req.header(k.unwrap(), v);
+        }
 
         let res = req
             .send()
             .await
             .or_else(|e| -> Result<reqwest::Response, _> {
-                error!("http error on VM select : {:?}", &e);
+                error!("http error on VM query : {:?}", &e);
                 return Err(StatusCode::INTERNAL_SERVER_ERROR);
             })?;
         error!("VM response : {:#?}", &res);
 
         return Ok((res.status(), res.bytes().await.unwrap()));
-        //return Err(StatusCode::NOT_IMPLEMENTED);
     }
 }
 mod agent {

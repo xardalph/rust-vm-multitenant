@@ -80,9 +80,9 @@ for agent, see all endpoint implemented in src/nosql/web/controller/protected.rs
 
 In VM, metrics are identified by a list of label each. the main label is `__name__` which is the metric name (for example cpu_kernel, cpu_user...). Other label are data to add context on the value, for example the container name, the job retrieving the data (here job will be our agent name)
 
-To find out what labels are available, use the `/labels` endpoint : 
+To find out what labels are available, use the `/vm/labels` endpoint : 
 ```
-curl http://localhost:3000/labels -H 'Cookie: id=auth' 
+curl http://localhost:3000/vm/labels -H 'Cookie: id=auth' 
 ```
 ```
 {
@@ -98,7 +98,7 @@ curl http://localhost:3000/labels -H 'Cookie: id=auth'
 Then to see all possible value for a label add it to the url, For exemple for the label `__name__` : 
 
 ```
-curl http://localhost:3000/label/__name__/values -H 'Cookie: id=auth' 
+curl http://localhost:3000/vm/label/__name__/values -H 'Cookie: id=auth' 
 ```
 ```
 {
@@ -121,15 +121,15 @@ curl http://localhost:3000/label/__name__/values -H 'Cookie: id=auth'
 }
 ```
 
-to retrieve data for a specific metric you should use the `/select` endpoint, for example this will retrieve all metric with `__name__` match cpu_kernel or cpu_user. there will be one timeserie for each label diferent, so in our case nb_agent*nb_container_peer_agent :
+to retrieve data for a specific metric you should use the `/vm/export` endpoint, for example this will retrieve all metric with `__name__` match cpu_kernel or cpu_user. there will be one timeserie for each label diferent, so in our case nb_agent*nb_container :
 ```
-curl -X POST http://localhost:3000/select -d 'match[]={__name__=~"cpu_kernel|cpu_user"}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
+curl -X POST http://localhost:3000/vm/export -d 'match[]={__name__=~"cpu_kernel|cpu_user"}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
 ```
 
 To get metric from a specific agent : 
 
 ```
-curl -X POST http://localhost:3000/select -d 'match[]={__name__=~"cpu_kernel|cpu_user",job="main agent"}'}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
+curl -X POST http://localhost:3000/vm/export -d 'match[]={__name__=~"cpu_kernel|cpu_user",job="main agent"}'}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
 ```
 
 ## Roadmap
