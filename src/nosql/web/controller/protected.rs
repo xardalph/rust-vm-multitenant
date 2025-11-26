@@ -3,13 +3,16 @@ use super::super::super::users::{AuthSession, Credentials};
 use super::super::super::web::{App, extractor::current_user::*};
 use askama::Template;
 use axum::{
+    Json,
+    extract::{self, Path},
+};
+use axum::{
     Router,
     extract::State,
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::{get, post},
 };
-
 use axum_messages::{Message, Messages};
 use sqlx::Pool as sqlxPool;
 
@@ -30,10 +33,16 @@ pub fn router() -> Router<App> {
         )
         // this is Victoria metric endpoint
         .route("/select", post(self::victoria_api::select))
+        .route("/labels", get(self::victoria_api::labels))
+        .route(
+            "/label/{label}/values",
+            get(self::victoria_api::label_value),
+        )
 }
 mod victoria_api {
     use axum::extract::{self, Request};
-    use axum_login::tracing::{debug, error};
+    use axum_login::tracing::{debug, error, info};
+    use reqwest::RequestBuilder;
 
     use crate::nosql::{
         model::{Agent, VictoriaMetric},
@@ -43,6 +52,61 @@ mod victoria_api {
     use super::*;
     use bytes::Bytes;
 
+    pub async fn labels(
+        user: CurrentUser,
+        State(client): State<reqwest::Client>,
+        State(vm_url): State<VictoriaEndpoint>,
+        State(db): State<sqlxPool<sqlx::Postgres>>,
+    ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
+        let url = format!(
+            "{}/select/{}/prometheus/api/v1/labels",
+            vm_url.url,
+            user.id_victoria(db).await.unwrap()
+        );
+        vm_passthrough(url, client, None).await
+    }
+    pub async fn label_value(
+        Path(label): Path<String>,
+        user: CurrentUser,
+        State(client): State<reqwest::Client>,
+        State(vm_url): State<VictoriaEndpoint>,
+        State(db): State<sqlxPool<sqlx::Postgres>>,
+    ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
+        let url = format!(
+            "{}/select/{}/prometheus/api/v1/label/{}/values",
+            vm_url.url,
+            user.id_victoria(db).await.unwrap(),
+            label
+        );
+        vm_passthrough(url, client, None).await
+    }
+
+    pub async fn vm_passthrough(
+        url: String,
+        client: reqwest::Client,
+        body: Option<Bytes>,
+    ) -> Result<(http::StatusCode, Bytes), http::StatusCode> {
+        error!("trying request {url}");
+        let req = match body {
+            Some(b) => client
+                .post(url)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .body(b),
+            None => client
+                .get(url)
+                .header("Content-Type", "application/x-www-form-urlencoded"),
+        };
+        let res = req
+            .send()
+            .await
+            .or_else(|e| -> Result<reqwest::Response, _> {
+                error!("http error on VM query : {:?}", &e);
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            })?;
+        error!("VM response : {:#?}", &res);
+
+        return Ok((res.status(), res.bytes().await.unwrap()));
+    }
     pub async fn select(
         user: CurrentUser,
         State(client): State<reqwest::Client>,
@@ -83,10 +147,6 @@ mod agent {
     use crate::nosql::model::{Agent, AppError, PubAgent};
 
     use super::*;
-    use axum::{
-        Json,
-        extract::{self, Path},
-    };
 
     use axum_login::tracing::info;
     use futures_util::TryStreamExt;

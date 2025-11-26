@@ -74,13 +74,63 @@ curl localhost:3000/login -d 'username=usernameHere&password=YourPassword' -v
 ```
 Then retrieve the cookie "id" from the response, and put this cookie in all subsequent api endpoint to be authenticated.
 
-be carefull that when you try to use the api without authentication you might get a 307 to /login page.
+be carefull that when you try to use the api without authentication you might get a 307 to /login page, that's a design flow, i'm not fixing that.
 
-to retrieve data you should use the `/select` endpoint :
+for agent, see all endpoint implemented in src/nosql/web/controller/protected.rs for the agent.
+
+In VM, metrics are identified by a list of label each. the main label is `__name__` which is the metric name (for example cpu_kernel, cpu_user...). Other label are data to add context on the value, for example the container name, the job retrieving the data (here job will be our agent name)
+
+To find out what labels are available, use the `/labels` endpoint : 
 ```
-curl -X POST http://localhost:3000/select -d 'match[]={__name__=~"cpu_kernel|process_minor_pagefaults_total"}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
+curl http://localhost:3000/labels -H 'Cookie: id=auth' 
+```
+```
+{
+  "status": "success",
+  "isPartial": false,
+  "data": [
+    "job",
+    "__name__",
+    "container_name",
+]}
 ```
 
+Then to see all possible value for a label add it to the url, For exemple for the label `__name__` : 
+
+```
+curl http://localhost:3000/label/__name__/values -H 'Cookie: id=auth' 
+```
+```
+{
+  "status": "success",
+  "isPartial": false,
+  "data": [
+    "cpu_kernel",
+    "flag",
+    "go_cgo_calls_count",
+    "go_cpu_count",
+    "go_gc_cpu_seconds_total",
+    "go_gc_duration_seconds",
+    "go_gc_duration_seconds_count",
+    "go_gc_duration_seconds_sum",
+    "go_gc_forced_count",
+    "go_gc_mark_assist_cpu_seconds_total",
+    "go_gc_pauses_seconds_bucket",
+    "go_gomaxprocs",
+    ]
+}
+```
+
+to retrieve data for a specific metric you should use the `/select` endpoint, for example this will retrieve all metric with `__name__` match cpu_kernel or cpu_user. there will be one timeserie for each label diferent, so in our case nb_agent*nb_container_peer_agent :
+```
+curl -X POST http://localhost:3000/select -d 'match[]={__name__=~"cpu_kernel|cpu_user"}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
+```
+
+To get metric from a specific agent : 
+
+```
+curl -X POST http://localhost:3000/select -d 'match[]={__name__=~"cpu_kernel|cpu_user",job="main agent"}'}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
+```
 
 ## Roadmap
 

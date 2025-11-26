@@ -74,11 +74,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let _ = process_container(docker_clone, container, http_clone, url, apikey).await;
         }));
     }
-    println!("finished spawning task.");
+    info!("finished spawning task for ech container.");
     for task in tasks {
         let _ = task.await;
     }
-    println!("The end.");
+    info!("The end.");
 
     Ok(())
 }
@@ -89,7 +89,7 @@ async fn process_container(
     url: String,
     apikey: String,
 ) {
-    println!("started process_container {}", container.name);
+    info!("started process_container {}", container.name);
     //thread::sleep(time::Duration::from_millis(900));
     let timestamp = Instant::now();
     let mut old_value: Option<ContainerInfo> = None;
@@ -197,17 +197,27 @@ async fn get_container_list(docker: &Docker) -> Result<Vec<Container>, Box<dyn s
             "removing" => ContainerStateStatusInlineItem::Removing,
             _ => continue, // ignore exited container and non valid.
         };
-        println!("container names: {:#?}", &container.network_settings);
 
+        let Some(container_name) = container.names.map(|n| {
+            if n[0].starts_with('/') {
+                let v = &n[0][1..].to_string().clone();
+                v.clone()
+            } else {
+                let v = &n[0].to_string().clone();
+                v.clone()
+            }
+        }) else {
+            continue;
+        };
         list.push(Container {
             id: container.id.unwrap_or_default()[..12].to_string(),
             image: container.image.unwrap_or_default(),
             state: state,
-            name: container.names.map(|n| n[0].to_owned()).unwrap_or_default(),
+            name: container_name.to_string(),
         });
         valid_count = valid_count + 1;
     }
-    debug!("{}/{} containers are valid", valid_count, total_count);
+    info!("{}/{} containers are valid", valid_count, total_count);
 
     return Ok(list);
 }
