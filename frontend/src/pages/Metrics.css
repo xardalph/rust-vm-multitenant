@@ -1,117 +1,120 @@
+/* Metrics Page */
+
 .metrics-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #f0f4f8;
 }
 
 .metrics-container {
   display: grid;
   grid-template-columns: 300px 1fr;
-  gap: 20px;
-  padding: 20px;
-  max-width: 1600px;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
 .controls-panel {
   background: white;
   border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   height: fit-content;
   position: sticky;
-  top: 20px;
+  top: 1.5rem;
 }
 
 .control-group {
-  margin-bottom: 25px;
+  margin-bottom: 1.5rem;
 }
 
 .control-group label {
   display: inline-block;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 10px;
-  color: #333;
-  font-size: 14px;
+  color: #334155;
+  font-size: 0.85rem;
 }
 
 .clear-btn {
   float: right;
-  background: #dc3545;
+  background: #dc2626;
   color: white;
   border: none;
   padding: 4px 10px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background-color 0.2s;
 }
 
 .clear-btn:hover {
-  background: #c82333;
+  background: #b91c1c;
 }
 
 .select-input {
   width: 100%;
-  padding: 10px;
-  border: 2px solid #e0e0e0;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.3s;
+  font-size: 0.85rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .select-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .time-buttons {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
 }
 
 .time-btn {
   padding: 8px 12px;
-  border: 2px solid #e0e0e0;
+  border: 1px solid #cbd5e1;
   background: white;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.3s;
+  font-size: 0.8rem;
+  transition: all 0.2s;
 }
 
 .time-btn:hover {
-  border-color: #667eea;
-  background: #f0f4ff;
+  border-color: #2563eb;
+  background: #eff6ff;
 }
 
 .time-btn.active {
-  background: #667eea;
+  background: #2563eb;
   color: white;
-  border-color: #667eea;
+  border-color: #2563eb;
 }
 
 .metrics-selector {
-  max-height: 400px;
+  max-height: 350px;
   overflow-y: auto;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
   border-radius: 6px;
   padding: 10px;
-  background: #f9f9f9;
+  background: #f8fafc;
 }
 
 .metric-checkbox {
   display: flex;
   align-items: center;
-  padding: 8px;
-  margin-bottom: 5px;
-  border-radius: 4px;
-  transition: background 0.2s;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 5px;
+  transition: background-color 0.15s;
 }
 
 .metric-checkbox:hover {
-  background: #f0f0f0;
+  background: #e2e8f0;
 }
 
 .metric-checkbox input[type="checkbox"] {
@@ -119,131 +122,135 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
+  accent-color: #2563eb;
 }
 
 .metric-checkbox label {
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.82rem;
   user-select: none;
   margin: 0;
   font-weight: 400;
+  color: #475569;
 }
 
 .loading-indicator {
-  background: #fff3cd;
-  color: #856404;
+  background: #fef3c7;
+  color: #92400e;
   padding: 12px;
   border-radius: 6px;
   text-align: center;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 0.85rem;
+  border-left: 3px solid #f59e0b;
 }
 
 .error-message {
-  background: #f8d7da;
-  color: #721c24;
+  background: #fef2f2;
+  color: #dc2626;
   padding: 12px;
   border-radius: 6px;
   text-align: center;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 0.85rem;
+  border-left: 3px solid #dc2626;
 }
 
 .charts-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
 }
 
 .no-data {
   background: white;
   border-radius: 8px;
-  padding: 60px 20px;
+  padding: 3rem 1.5rem;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .no-data p {
-  color: #666;
-  font-size: 16px;
-  margin: 0 0 10px 0;
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0 0 8px 0;
 }
 
 .no-data .hint,
 .no-metrics-msg .hint {
-  color: #999;
-  font-size: 13px;
+  color: #94a3b8;
+  font-size: 0.8rem;
   font-style: italic;
 }
 
 .agent-info-box {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1e293b;
   color: white;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  padding: 14px;
+  border-radius: 6px;
+  margin-bottom: 1.25rem;
 }
 
 .agent-info-box h3 {
-  margin: 0 0 5px 0;
-  font-size: 16px;
+  margin: 0 0 4px 0;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .agent-id-small {
   margin: 0;
-  font-size: 11px;
-  opacity: 0.8;
+  font-size: 0.7rem;
+  opacity: 0.7;
   font-family: monospace;
 }
 
 .no-metrics-msg {
-  padding: 20px;
+  padding: 1.5rem;
   text-align: center;
-  color: #666;
-  background: #f9f9f9;
+  color: #64748b;
+  background: #f8fafc;
   border-radius: 6px;
+  border: 2px dashed #e2e8f0;
 }
 
 .no-metrics-msg p {
-  margin: 0 0 5px 0;
+  margin: 0 0 4px 0;
 }
 
 .chart-container {
   background: white;
   border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .chart-container h3 {
-  margin: 0 0 15px 0;
-  color: #333;
-  font-size: 16px;
-  font-weight: 600;
-  border-bottom: 2px solid #667eea;
+  margin: 0 0 14px 0;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 500;
   padding-bottom: 10px;
+  border-bottom: 2px solid #2563eb;
 }
 
 .chart-wrapper {
-  height: 300px;
+  height: 280px;
   position: relative;
 }
 
 .nav-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: #475569;
   color: white;
-  border: 2px solid white;
-  padding: 8px 16px;
-  border-radius: 6px;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
 }
 
 .nav-btn:hover {
-  background: white;
-  color: #667eea;
+  background: #334155;
 }
 
 @media (max-width: 1024px) {

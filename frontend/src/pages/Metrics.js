@@ -292,7 +292,7 @@ const Metrics = () => {
         <div className="controls-panel">
           {agentName && (
             <div className="agent-info-box">
-              <h3>📊 Agent: {agentName}</h3>
+              <h3>Agent: {agentName}</h3>
               <p className="agent-id-small">ID: {agentId}</p>
             </div>
           )}

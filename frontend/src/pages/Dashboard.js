@@ -219,14 +219,14 @@ const Dashboard = () => {
                         className="metrics-btn-small"
                         onClick={() => navigate(`/metrics?agent=${encodeURIComponent(agent.name)}&agentId=${agent.id}`)}
                       >
-                        📊 Metrics
+                        Metrics
                       </button>
                       <button
                         className={`token-badge ${copiedToken === agent.id ? 'copied' : ''}`}
                         onClick={() => copyTokenToClipboard(agent.token, agent.id)}
                         title="Click to copy full token"
                       >
-                        {copiedToken === agent.id ? '✓ Copied!' : `📋 ${agent.token?.substring(0, 8)}...`}
+                        {copiedToken === agent.id ? 'Copied!' : `${agent.token?.substring(0, 8)}...`}
                       </button>
                       <button
                         className="delete-btn"
