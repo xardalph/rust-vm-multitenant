@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import './Login.css';
 
+/**
+ * Login Component
+ * Handles user authentication with username and password.
+ * Displays error messages on failed login attempts.
+ */
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -11,6 +16,12 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
 
+  /**
+   * Handles form submission for user login.
+   * Calls the login function from authStore and redirects to dashboard on success.
+   * Displays error message on failure.
+   * @param {Event} e - Form submit event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');

@@ -1,11 +1,25 @@
 import { create } from 'zustand';
 import api, { loginApi } from '../api/client';
 
+/**
+ * Authentication Store (Zustand)
+ * Manages user authentication state, login, logout, and session checking.
+ * Uses localStorage to persist username across page reloads.
+ */
 export const useAuthStore = create((set) => ({
   isAuthenticated: false,
   user: null,
   loading: true,
   
+  /**
+   * Authenticates user with username and password.
+   * Sends credentials as form data to /login endpoint.
+   * Verifies success by attempting to access /agent endpoint.
+   * @param {string} username - User's username
+   * @param {string} password - User's password
+   * @returns {Promise} - Resolves on successful login
+   * @throws {Error} - Throws on authentication failure
+   */
   login: async (username, password) => {
     try {
       const formData = new URLSearchParams();
@@ -14,14 +28,14 @@ export const useAuthStore = create((set) => ({
       
       const response = await loginApi.post('/login', formData);
       
-      // Vérifier que le login a réussi en testant /agent
+      // Verify login success by testing /agent endpoint
       try {
         await api.get('/agent');
         set({ isAuthenticated: true, user: { username } });
         localStorage.setItem('username', username);
         return response;
       } catch (error) {
-        // Si /agent échoue, c'est que le login a échoué
+        // If /agent fails, login actually failed
         localStorage.removeItem('username');
         throw new Error('Login failed');
       }
@@ -30,6 +44,10 @@ export const useAuthStore = create((set) => ({
     }
   },
   
+  /**
+   * Logs out the current user.
+   * Clears authentication state and removes username from localStorage.
+   */
   logout: async () => {
     try {
       await api.get('/logout');
@@ -42,24 +60,29 @@ export const useAuthStore = create((set) => ({
     }
   },
   
+  /**
+   * Checks if the user is currently authenticated.
+   * Attempts to access /agent endpoint to verify session validity.
+   * Updates authentication state based on response.
+   */
   checkAuth: async () => {
     try {
-      // Essayer d'accéder à /agent pour vérifier qu'on est connecté
+      // Try to access /agent to verify authentication
       const response = await api.get('/agent');
       
-      // Si on reçoit une redirection (307), on n'est pas authentifié
+      // If redirect received (307), user is not authenticated
       if (response.status === 307 || response.status === 302 || response.status === 301) {
-        ('checkAuth - received redirect, not authenticated');
+        console.log('checkAuth - received redirect, not authenticated');
         set({ isAuthenticated: false, user: null, loading: false });
         localStorage.removeItem('username');
         return;
       }
       
-      // Si on arrive ici avec 200, on est authentifié
+      // If we get here with 200, user is authenticated
       const username = localStorage.getItem('username') || 'User';
       set({ isAuthenticated: true, user: { username }, loading: false });
     } catch (error) {
-      // Si ça fail (erreur réseau, 401, etc), on n'est pas connecté
+      // If request fails (network error, 401, etc), user is not logged in
       set({ isAuthenticated: false, user: null, loading: false });
       localStorage.removeItem('username');
     }

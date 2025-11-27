@@ -1,0 +1,258 @@
+.metrics-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.metrics-container {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.controls-panel {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+.control-group {
+  margin-bottom: 25px;
+}
+
+.control-group label {
+  display: inline-block;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 14px;
+}
+
+.clear-btn {
+  float: right;
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.clear-btn:hover {
+  background: #c82333;
+}
+
+.select-input {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.select-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.time-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.time-btn {
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.time-btn:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.time-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.metrics-selector {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 10px;
+  background: #f9f9f9;
+}
+
+.metric-checkbox {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 5px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.metric-checkbox:hover {
+  background: #f0f0f0;
+}
+
+.metric-checkbox input[type="checkbox"] {
+  margin-right: 10px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.metric-checkbox label {
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  margin: 0;
+  font-weight: 400;
+}
+
+.loading-indicator {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.charts-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.no-data {
+  background: white;
+  border-radius: 8px;
+  padding: 60px 20px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.no-data p {
+  color: #666;
+  font-size: 16px;
+  margin: 0 0 10px 0;
+}
+
+.no-data .hint,
+.no-metrics-msg .hint {
+  color: #999;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.agent-info-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.agent-info-box h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+}
+
+.agent-id-small {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.8;
+  font-family: monospace;
+}
+
+.no-metrics-msg {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+  background: #f9f9f9;
+  border-radius: 6px;
+}
+
+.no-metrics-msg p {
+  margin: 0 0 5px 0;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 10px;
+}
+
+.chart-wrapper {
+  height: 300px;
+  position: relative;
+}
+
+.nav-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.nav-btn:hover {
+  background: white;
+  color: #667eea;
+}
+
+@media (max-width: 1024px) {
+  .metrics-container {
+    grid-template-columns: 1fr;
+  }
+
+  .controls-panel {
+    position: relative;
+    top: 0;
+  }
+}

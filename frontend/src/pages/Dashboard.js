@@ -4,6 +4,11 @@ import { useAuthStore } from '../store/authStore';
 import api from '../api/client';
 import './Dashboard.css';
 
+/**
+ * Dashboard Component
+ * Main dashboard page displaying agents list and providing CRUD operations.
+ * Allows users to create, view, and delete monitoring agents.
+ */
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -14,22 +19,43 @@ const Dashboard = () => {
   const [newAgentName, setNewAgentName] = useState('');
   const [newAgentToken, setNewAgentToken] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(null);
 
+  /**
+   * Copies the agent token to clipboard and shows feedback.
+   * @param {string} token - The agent token to copy
+   * @param {string} agentId - The agent ID for tracking which token was copied
+   */
+  const copyTokenToClipboard = async (token, agentId) => {
+    try {
+      await navigator.clipboard.writeText(token);
+      setCopiedToken(agentId);
+      setTimeout(() => setCopiedToken(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy token:', err);
+    }
+  };
+
+  // Fetch agents on component mount
   useEffect(() => {
     fetchAgents();
   }, []);
 
+  /**
+   * Fetches the list of agents from the backend API.
+   * Redirects to login page if authentication fails (307 or 401).
+   */
   const fetchAgents = async () => {
     try {
       setLoading(true);
       const response = await api.get('/agent');
-      // Vérifier si la réponse est un array, sinon la convertir
+      // Check if response is an array, otherwise convert it
       const agentsList = Array.isArray(response.data) ? response.data : [];
       setAgents(agentsList);
       setError('');
     } catch (err) {
       console.error('Error fetching agents:', err);
-      // Si 307 ou 401, rediriger à login
+      // If 307 or 401, redirect to login
       if (err.response?.status === 307 || err.response?.status === 401) {
         navigate('/login', { replace: true });
         return;
@@ -41,13 +67,18 @@ const Dashboard = () => {
     }
   };
 
+  /**
+   * Handles the creation of a new agent.
+   * Generates a random token if not provided by the user.
+   * @param {Event} e - Form submit event
+   */
   const handleCreateAgent = async (e) => {
     e.preventDefault();
     if (!newAgentName.trim()) return;
 
     setIsCreating(true);
     try {
-      // Générer un token aléatoire s'il n'est pas fourni
+      // Generate random token if not provided
       const token = newAgentToken.trim() || 'token_' + Math.random().toString(36).substr(2, 9);
       
       await api.post('/agent', { 
@@ -65,6 +96,11 @@ const Dashboard = () => {
     }
   };
 
+  /**
+   * Handles agent deletion with confirmation dialog.
+   * @param {string} agentId - The ID of the agent to delete
+   * @param {string} agentName - The name of the agent (for confirmation message)
+   */
   const handleDeleteAgent = async (agentId, agentName) => {
     if (!window.confirm(`Delete agent "${agentName}"?`)) return;
 
@@ -76,6 +112,9 @@ const Dashboard = () => {
     }
   };
 
+  /**
+   * Handles user logout by calling the logout function from authStore.
+   */
   const handleLogout = async () => {
     await logout();
   };
@@ -176,7 +215,19 @@ const Dashboard = () => {
                       <p className="agent-id">ID: {agent.id}</p>
                     </div>
                     <div className="agent-actions">
-                      <span className="token-badge" title="Copy token">Token: {agent.token?.substring(0, 8)}...</span>
+                      <button
+                        className="metrics-btn-small"
+                        onClick={() => navigate(`/metrics?agent=${encodeURIComponent(agent.name)}&agentId=${agent.id}`)}
+                      >
+                        📊 Metrics
+                      </button>
+                      <button
+                        className={`token-badge ${copiedToken === agent.id ? 'copied' : ''}`}
+                        onClick={() => copyTokenToClipboard(agent.token, agent.id)}
+                        title="Click to copy full token"
+                      >
+                        {copiedToken === agent.id ? '✓ Copied!' : `📋 ${agent.token?.substring(0, 8)}...`}
+                      </button>
                       <button
                         className="delete-btn"
                         onClick={() => handleDeleteAgent(agent.id, agent.name)}
