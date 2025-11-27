@@ -17,6 +17,8 @@ services:
       - "--remoteWrite.url=http://vmauth:8427/insert/0/prometheus/api/v1/write"
       - "--remoteWrite.basicAuth.username=foo"
       - "--remoteWrite.basicAuth.password=bar"
+    networks:
+      - nosql-network
 
   # vmstorage shards. Each shard receives 1/N of all metrics sent to vminserts,
   # where N is number of vmstorages (2 in this case).
@@ -26,12 +28,16 @@ services:
       - strgdata-1:/storage
     command:
       - "--storageDataPath=/storage"
+    networks:
+      - nosql-network
   vmstorage-2:
     image: victoriametrics/vmstorage:v1.129.1-cluster
     volumes:
       - strgdata-2:/storage
     command:
       - "--storageDataPath=/storage"
+    networks:
+      - nosql-network
 
   # vminsert is ingestion frontend. It receives metrics pushed by vmagent,
   # pre-process them and distributes across configured vmstorage shards.
@@ -43,6 +49,8 @@ services:
     command:
       - "--storageNode=vmstorage-1:8400"
       - "--storageNode=vmstorage-2:8400"
+    networks:
+      - nosql-network
   vminsert-2:
     image: victoriametrics/vminsert:v1.129.1-cluster
     depends_on:
@@ -51,6 +59,8 @@ services:
     command:
       - "--storageNode=vmstorage-1:8400"
       - "--storageNode=vmstorage-2:8400"
+    networks:
+      - nosql-network
   # vmselect is a query fronted. It serves read queries in MetricsQL or PromQL.
   # vmselect collects results from configured `--storageNode` shards.
   vmselect-1:
@@ -62,6 +72,8 @@ services:
       - "--storageNode=vmstorage-1:8401"
       - "--storageNode=vmstorage-2:8401"
       - "--vmalert.proxyURL=http://vmalert:8880"
+    networks:
+      - nosql-network
   vmselect-2:
     image: victoriametrics/vmselect:v1.129.1-cluster
     depends_on:
@@ -71,6 +83,8 @@ services:
       - "--storageNode=vmstorage-1:8401"
       - "--storageNode=vmstorage-2:8401"
       - "--vmalert.proxyURL=http://vmalert:8880"
+    networks:
+      - nosql-network
   # vmauth is a router and balancer for HTTP requests.
   # It is configured via --auth.config and balances
   # read requests from Grafana, vmui, vmalert among vmselects.
@@ -86,6 +100,8 @@ services:
       - "--auth.config=/etc/auth.yml"
     ports:
       - 8427:8427
+    networks:
+      - nosql-network
 
   cache:
     image: redis:6.2-alpine
@@ -94,6 +110,8 @@ services:
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - cache:/data
+    networks:
+      - nosql-network
   postgres:
     container_name: postgres
     ports:
@@ -103,6 +121,49 @@ services:
       POSTGRES_PASSWORD: password
     volumes:
       - pgdata:/var/lib/postgresql
+    networks:
+      - nosql-network
+  backend:
+    container_name: backend
+    build: ./
+    env_file: ".env"
+    depends_on:
+      - cache
+      - postgres
+      - vminsert-1
+      - vminsert-2
+    expose:
+      - "3000"
+    networks:
+      - nosql-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - nosql-network
+
+  agent:
+    build: ./
+    env_file: ".env"
+    entrypoint: "agent"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+    depends_on:
+      - backend
+    networks:
+      - nosql-network
+
+networks:
+  nosql-network:
+    driver: bridge
+
 volumes:
   pgdata: {}
   cache: {}

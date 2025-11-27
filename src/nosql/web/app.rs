@@ -113,7 +113,6 @@ impl App {
 
     pub async fn serve(self) -> Result<(), Box<dyn std::error::Error>> {
         let app = protected::router()
-            .route_layer(login_required!(usersBackend, login_url = "/login"))
             .merge(auth::router())
             .merge(victoria_api::router().layer(middleware::from_fn_with_state(
                 self.db.clone(),

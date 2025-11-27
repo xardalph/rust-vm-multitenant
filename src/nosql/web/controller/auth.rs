@@ -47,13 +47,7 @@ mod post {
             Ok(Some(user)) => user,
             Ok(None) => {
                 messages.error("Invalid credentials");
-
-                let mut login_url = "/login".to_string();
-                if let Some(next) = creds.next {
-                    login_url = format!("{login_url}?next={next}");
-                };
-
-                return Redirect::to(&login_url).into_response();
+                return StatusCode::UNAUTHORIZED.into_response();
             }
             Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         };

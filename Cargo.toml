@@ -44,3 +44,4 @@ utoipa-axum = "0.2.0"
 axum-swagger-ui = "0.3.0"
 axum-openapi3 = "0.2.0"
 uuid = {version= "1.18.1", features = ["serde", "v7"]}
+tower-http = { version = "0.5", features = ["cors", "trace"] }

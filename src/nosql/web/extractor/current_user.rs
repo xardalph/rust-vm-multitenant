@@ -35,11 +35,13 @@ where
     type Rejection = (StatusCode, &'static str);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let clone = parts
+        let auth_session = parts
             .extensions
             .get::<axum_login::AuthSession<users::Backend>>()
-            .cloned();
-        let user = clone.unwrap().user.unwrap();
+            .ok_or((StatusCode::UNAUTHORIZED, "Not authenticated"))?;
+        
+        let user = auth_session.user.as_ref()
+            .ok_or((StatusCode::UNAUTHORIZED, "Not authenticated"))?;
 
         Ok(Self {
             id: user.id,
