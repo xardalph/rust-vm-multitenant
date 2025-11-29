@@ -39,11 +39,11 @@ const Metrics = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, logout } = useAuthStore();
-  
+
   // Get agent info from URL params (optional - for agent-specific views)
   const agentName = searchParams.get('agent');
   const agentId = searchParams.get('agentId');
-  
+
   // State management
   const [availableMetrics, setAvailableMetrics] = useState([]);
   const [availableJobs, setAvailableJobs] = useState([]);
@@ -78,18 +78,18 @@ const Metrics = () => {
     try {
       // Build PromQL query with optional job filter
       const metricsQuery = selectedMetrics.join('|');
-      const query = selectedJob 
+      const query = selectedJob
         ? `{__name__=~"${metricsQuery}",job="${selectedJob}"}`
         : `{__name__=~"${metricsQuery}"}`;
-      
+
       // Use POST with form-urlencoded data (VictoriaMetrics format)
-      const response = await api.post('/vm/export', 
+      const response = await api.post('/vm/export',
         `match[]=${encodeURIComponent(query)}`,
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          transformResponse: [(data) => data], 
+          transformResponse: [(data) => data],
         }
       );
 
@@ -99,7 +99,7 @@ const Metrics = () => {
         setMetricsData({});
         return;
       }
-      
+
       const lines = text.split('\n').filter(line => line.length > 0);
       const parsedData = {};
 
@@ -109,10 +109,11 @@ const Metrics = () => {
           const data = JSON.parse(line);
           const metricName = data.metric.__name__;
           const instance = data.metric.instance || data.metric.job || 'unknown';
-          const key = `${metricName}_${instance}`;
-          
+          const container_name = data.metric.container_name || '';
+          const key = `${metricName}_${instance}${container_name ? `_${container_name}` : ''}`;
+
           parsedData[key] = {
-            label: `${metricName} (${instance})`,
+            label: `${metricName} (${instance}${container_name ? ` - ${container_name}` : ''})`,
             metricName,
             instance,
             timestamps: data.timestamps || [],
@@ -187,8 +188,8 @@ const Metrics = () => {
    * @param {string} metric - The metric name to toggle
    */
   const toggleMetric = (metric) => {
-    setSelectedMetrics(prev => 
-      prev.includes(metric) 
+    setSelectedMetrics(prev =>
+      prev.includes(metric)
         ? prev.filter(m => m !== metric)
         : [...prev, metric]
     );
@@ -299,8 +300,8 @@ const Metrics = () => {
 
           <div className="control-group">
             <label>Filter by Job:</label>
-            <select 
-              value={selectedJob} 
+            <select
+              value={selectedJob}
               onChange={(e) => setSelectedJob(e.target.value)}
               className="select-input"
             >
@@ -329,7 +330,7 @@ const Metrics = () => {
           <div className="control-group">
             <label>Select Metrics ({availableMetrics.length} available):</label>
             {selectedMetrics.length > 0 && (
-              <button 
+              <button
                 className="clear-btn"
                 onClick={() => setSelectedMetrics([])}
               >
@@ -384,7 +385,7 @@ const Metrics = () => {
               <p className="hint">Filter by typing "cpu", "memory", or "go_" to find common metrics</p>
             </div>
           )}
-          
+
           {Object.keys(metricsData).length === 0 && !loading && selectedMetrics.length > 0 && (
             <div className="no-data">
               <p>No data found for selected metrics</p>
@@ -392,18 +393,20 @@ const Metrics = () => {
             </div>
           )}
 
-          {Object.entries(metricsData).map(([key, data]) => {
-            const chartData = getChartData(key);
-            if (!chartData) return null;
-            return (
-              <div key={key} className="chart-container">
-                <h3>{data.label}</h3>
-                <div className="chart-wrapper">
-                  <Line data={chartData} options={chartOptions} />
+          {Object.entries(metricsData)
+            .sort(([, a], [, b]) => a.label.localeCompare(b.label))
+            .map(([key, data]) => {
+              const chartData = getChartData(key);
+              if (!chartData) return null;
+              return (
+                <div key={key} className="chart-container">
+                  <h3>{data.label}</h3>
+                  <div className="chart-wrapper">
+                    <Line data={chartData} options={chartOptions} />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
     </div>
