@@ -11,41 +11,33 @@ REQUIRE UNIX SOCKET
 The agent require docker unix socket to be accessible (windows is implemented but not tested.). If you don't have an unix socket use a virtual machine for a proper linux.
 If you are on mac, you should check your docker socket location and fix the docker compose files accordingly.
 
-Clone the repository, and run docker compose up -d with diferent parameter depending on your situation :
-
-### dev - only DB in docker
-
-start every Database with :
+Clone the repository, and run docker compose up -d :
 
 ```sh
 docker compose  -d
 ```
 
-Then run the rust server part with :
-
-```sh
-RUST_LOG=debug cargo run --bin server
-```
-
-and start the agent with :
-
-```sh
-RUST_LOG=debug cargo run --bin agent
-```
-
-### Prod - no traefik
-You want to build all the code automaticaly and run VM, postgres, redis, the rust backend, the agent in a container each :
-```sh
-docker compose -f docker-compose.yaml -f docker-compose-rust.yaml up -d
-```
-
 Access webapp on http://localhost:3000
 
-### Prod - with traefik
-TODO. Need to add label at least on the rust server to have https serving, and probably 2 container of the same server to be fun.
-```sh
-docker compose -f docker-compose.yaml -f docker-compose-rust.yaml up -d
-```
+the default user is `admin`/`hunter42`
+
+On the main dashboard you will see the list of agent configured in the database.
+
+the "main agent" as been created for you by docker compose with the correct token. You can add any number of agent you see fit. If you click on "metrics" you will see a query board.
+
+you can filter job (which loosely translate to an agent or an internal element of victoria metrics) and select which metrics you want to see. here the list of metrics exported by default by agents, the other one are exported by victoria metrics :
+
+online_cpus\
+system_cpu_usage\
+total_cpu_usage\
+kernelmode_cpu_usage\
+usermode_cpu_usage\
+memory_usage_bytes\
+memory_limit_bytes\
+network_rx_bytes\
+network_tx_bytes\
+
+
 
 ## technical architecture
 
@@ -80,9 +72,9 @@ for agent, see all endpoint implemented in src/nosql/web/controller/protected.rs
 
 In VM, metrics are identified by a list of label each. the main label is `__name__` which is the metric name (for example cpu_kernel, cpu_user...). Other label are data to add context on the value, for example the container name, the job retrieving the data (here job will be our agent name)
 
-To find out what labels are available, use the `/vm/labels` endpoint : 
+To find out what labels are available, use the `/vm/labels` endpoint :
 ```
-curl http://localhost:3000/vm/labels -H 'Cookie: id=auth' 
+curl http://localhost:3000/vm/labels -H 'Cookie: id=auth'
 ```
 ```
 {
@@ -95,10 +87,10 @@ curl http://localhost:3000/vm/labels -H 'Cookie: id=auth'
 ]}
 ```
 
-Then to see all possible value for a label add it to the url, For exemple for the label `__name__` : 
+Then to see all possible value for a label add it to the url, For exemple for the label `__name__` :
 
 ```
-curl http://localhost:3000/vm/label/__name__/values -H 'Cookie: id=auth' 
+curl http://localhost:3000/vm/label/__name__/values -H 'Cookie: id=auth'
 ```
 ```
 {
@@ -126,7 +118,7 @@ to retrieve data for a specific metric you should use the `/vm/export` endpoint,
 curl -X POST http://localhost:3000/vm/export -d 'match[]={__name__=~"cpu_kernel|cpu_user"}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
 ```
 
-To get metric from a specific agent : 
+To get metric from a specific agent :
 
 ```
 curl -X POST http://localhost:3000/vm/export -d 'match[]={__name__=~"cpu_kernel|cpu_user",job="main agent"}'}' -H 'Cookie: id=22Tn5mo86FtoxT31odaktg'  -v -H 'Content-Type: application/json'
