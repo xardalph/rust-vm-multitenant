@@ -208,7 +208,50 @@ impl Agent {
         &self,
         container: &Container,
         stats: &ContainerStats,
-        previous_stats: &ContainerStats,
+        previous: &ContainerStats,
+    ) -> Result<()> {
+        let timestamp = stats.unix_timestamp as i64;
+
+        let online_cpus = stats.online_cpus as f64;
+
+        let system_cpu = (stats.system_cpu_usage - previous.system_cpu_usage) as f64;
+        let total_cpu = (stats.total_cpu_usage - previous.total_cpu_usage) as f64;
+        let kernelmode_cpu = (stats.kernelmode_cpu_usage - previous.kernelmode_cpu_usage) as f64;
+        let usermode_cpu = (stats.usermode_cpu_usage - previous.usermode_cpu_usage) as f64;
+        let cpu_usage_percent = stats.cpu_usage_percent(previous);
+
+        let memory_usage = stats.memory_usage_bytes as f64;
+        let memory_limit = stats.memory_limit_bytes as f64;
+        let memory_percent = stats.memory_usage_percent();
+
+        let network_rx_bytes = (stats.network_rx_bytes - previous.network_rx_bytes) as f64;
+        let network_tx_bytes = (stats.network_tx_bytes - previous.network_tx_bytes) as f64;
+
+        let futures = [
+            self.upload_stat(container, "cpu_online_cpus", online_cpus, timestamp),
+            self.upload_stat(container, "cpu_system_usage", system_cpu, timestamp),
+            self.upload_stat(container, "cpu_total_usage", total_cpu, timestamp),
+            self.upload_stat(container, "cpu_kernelmode_usage", kernelmode_cpu, timestamp),
+            self.upload_stat(container, "cpu_usermode_usage", usermode_cpu, timestamp),
+            self.upload_stat(container, "cpu_usage_percent", cpu_usage_percent, timestamp),
+            self.upload_stat(container, "memory_usage_bytes", memory_usage, timestamp),
+            self.upload_stat(container, "memory_limit_bytes", memory_limit, timestamp),
+            self.upload_stat(container, "memory_usage_percent", memory_percent, timestamp),
+            self.upload_stat(container, "network_rx_bytes", network_rx_bytes, timestamp),
+            self.upload_stat(container, "network_tx_bytes", network_tx_bytes, timestamp),
+        ];
+
+        futures::future::join_all(futures).await;
+
+        Ok(())
+    }
+
+    async fn upload_stat(
+        &self,
+        container: &Container,
+        stat_name: &str,
+        stat_value: f64,
+        timestamp: i64,
     ) -> Result<()> {
         #[derive(Debug, Clone, Serialize, Deserialize)]
         pub struct VictoriaMetric {
@@ -217,16 +260,14 @@ impl Agent {
             pub timestamps: Vec<i64>,
         }
 
-        warn!("Uploading stats for container {}", container.name());
-
         let mut hash = HashMap::new();
-        hash.insert("__name__".to_string(), "cpu_kernel".to_string());
+        hash.insert("__name__".to_string(), stat_name.to_string());
         hash.insert("container_name".to_string(), container.name().to_string());
 
         let metric = VictoriaMetric {
             metric: hash,
-            values: vec![stats.system_cpu_usage as f64 - previous_stats.system_cpu_usage as f64],
-            timestamps: vec![stats.unix_timestamp as i64],
+            values: vec![stat_value],
+            timestamps: vec![timestamp],
         };
 
         // let's send the new data diff to the server
@@ -241,9 +282,6 @@ impl Agent {
             .body(body);
 
         let err = req.send().await;
-
-        warn!("Response: {:?}", err);
-
         if let Err(e) = err {
             error!(
                 "Could not access API, waiting 5 second before retrying :{:?}",

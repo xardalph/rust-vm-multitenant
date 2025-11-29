@@ -117,8 +117,8 @@ pub struct ContainerStats {
     pub kernelmode_cpu_usage: u64,
     pub usermode_cpu_usage: u64,
 
-    pub memory_usage: u64,
-    pub memory_limit: u64,
+    pub memory_usage_bytes: u64,
+    pub memory_limit_bytes: u64,
 
     pub network_rx_bytes: u64,
     pub network_tx_bytes: u64,
@@ -163,12 +163,12 @@ impl ContainerStats {
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
 
-        let memory_usage = stats
+        let memory_usage_bytes = stats
             .pointer("/memory_stats/usage")
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
 
-        let memory_limit = stats
+        let memory_limit_bytes = stats
             .pointer("/memory_stats/limit")
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
@@ -198,11 +198,35 @@ impl ContainerStats {
             kernelmode_cpu_usage,
             usermode_cpu_usage,
 
-            memory_usage,
-            memory_limit,
+            memory_usage_bytes,
+            memory_limit_bytes,
 
             network_rx_bytes,
             network_tx_bytes,
         })
+    }
+
+    pub fn cpu_usage_percent(&self, previous: &ContainerStats) -> f64 {
+        let cpu_delta = self
+            .total_cpu_usage
+            .saturating_sub(previous.total_cpu_usage);
+
+        let system_delta = self
+            .system_cpu_usage
+            .saturating_sub(previous.system_cpu_usage);
+
+        if system_delta == 0 || cpu_delta == 0 {
+            return 0.0;
+        }
+
+        (cpu_delta as f64 / system_delta as f64) * self.online_cpus as f64 * 100.0
+    }
+
+    pub fn memory_usage_percent(&self) -> f64 {
+        if self.memory_limit_bytes == 0 {
+            return 0.0;
+        }
+
+        (self.memory_usage_bytes as f64 / self.memory_limit_bytes as f64) * 100.0
     }
 }

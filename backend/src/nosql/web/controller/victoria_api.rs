@@ -61,7 +61,7 @@ mod post {
         extract::Json(mut payload): extract::Json<VictoriaMetric>,
     ) -> Result<http::StatusCode, AppError> {
         let url = format!(
-            "http://localhost:8427/insert/{}/prometheus/api/v1/import",
+            "http://vmauth:8427/insert/{}/prometheus/api/v1/import",
             get_victoria_tenant_from_agent(db, &agent).await?,
         );
         debug!(
