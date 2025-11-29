@@ -125,7 +125,7 @@ services:
       - nosql-network
   backend:
     container_name: backend
-    build: ./
+    build: ./backend/
     env_file: ".env"
     depends_on:
       - cache
@@ -150,9 +150,8 @@ services:
       - nosql-network
 
   agent:
-    build: ./
+    build: ./agent/
     env_file: ".env"
-    entrypoint: "agent"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
     depends_on:
