@@ -26,7 +26,7 @@ pub struct Opts {
     apikey: String,
 
     /// Regex to exclude containers.
-    #[arg(short = 'e', long = "exclude", env = "EXCLUDE_CONTAINER")]
+    #[arg(short = 'e', long = "exclude", env = "EXCLUDE_CONTAINER_STATE")]
     exclude: Option<String>,
 }
 
