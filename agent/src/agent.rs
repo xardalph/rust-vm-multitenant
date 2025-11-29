@@ -9,6 +9,7 @@ use std::{
 #[cfg(unix)]
 use anyhow::Result;
 use docker_api::{Docker, opts::ContainerListOpts};
+use regex::Regex;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::{
@@ -80,7 +81,27 @@ impl Agent {
 
         Ok(agent)
     }
-
+    pub fn is_excluded(self: &Arc<Self>, container: &Container) -> bool {
+        match self.opts.exclude.clone() {
+            None => {
+                return false;
+            }
+            Some(filter) => {
+                let re = Regex::new(&filter);
+                match re {
+                    Err(_) => {
+                        return false;
+                    }
+                    Ok(regex) => {
+                        if regex.is_match(&container.state().to_string().to_lowercase()) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        }
+    }
     pub async fn refresh_containers(self: &Arc<Self>) -> Result<()> {
         let opts = ContainerListOpts::builder().all(true).build();
         let containers = self.docker.containers().list(&opts).await?;
@@ -137,6 +158,9 @@ impl Agent {
         for id in containers_to_add {
             let container = Container::new(&self.docker, &id).await?;
 
+            if (self.is_excluded(&container)) {
+                continue;
+            }
             info!(
                 "Added container \"{}\" [{}]",
                 container.name(),

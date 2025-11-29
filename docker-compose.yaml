@@ -7,8 +7,6 @@ services:
     image: victoriametrics/vmagent:v1.129.1
     depends_on:
       - "vmauth"
-    ports:
-      - 8429:8429
     volumes:
       - vmagentdata:/vmagentdata
       - ./prometheus-vm-cluster.yml:/etc/prometheus/prometheus.yml
@@ -98,15 +96,11 @@ services:
       - ./auth-vm-cluster.yml:/etc/auth.yml
     command:
       - "--auth.config=/etc/auth.yml"
-    ports:
-      - 8427:8427
     networks:
       - nosql-network
 
   cache:
     image: redis:6.2-alpine
-    ports:
-      - "6379:6379"
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - cache:/data
@@ -114,8 +108,7 @@ services:
       - nosql-network
   postgres:
     container_name: postgres
-    ports:
-      - "5432:5432"
+
     image: postgres:latest
     environment:
       POSTGRES_PASSWORD: password

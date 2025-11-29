@@ -21,6 +21,8 @@ Access webapp on http://localhost:3000
 
 the default user is `admin`/`hunter42`
 
+The application being multi tenant, another tenant was created for user `userEnsiie`/`hunter42`, no data will be inserted in this tenant by default.
+
 On the main dashboard you will see the list of agent configured in the database.
 
 the "main agent" as been created for you by docker compose with the correct token. You can add any number of agent you see fit. If you click on "metrics" you will see a query board.
@@ -35,7 +37,10 @@ usermode_cpu_usage\
 memory_usage_bytes\
 memory_limit_bytes\
 network_rx_bytes\
-network_tx_bytes\
+network_tx_bytes
+
+
+Please be aware that metrics for new container can take up to 5 minutes to be available on the webapp once the agent found the container.
 
 
 

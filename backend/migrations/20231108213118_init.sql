@@ -39,6 +39,8 @@ values('ensiie');
 
 INSERT INTO users ( username, password, id_company)
 SELECT 'admin', '$argon2id$v=19$m=19456,t=2,p=1$VE0e3g7DalWHgDwou3nuRA$uC6TER156UQpk0lNQ5+jHM0l5poVjPA1he/Tyn9J4Zw', id FROM company where name = 'root';
+INSERT INTO users ( username, password, id_company)
+SELECT 'userEnsiie', '$argon2id$v=19$m=19456,t=2,p=1$VE0e3g7DalWHgDwou3nuRA$uC6TER156UQpk0lNQ5+jHM0l5poVjPA1he/Tyn9J4Zw', id FROM company where name = 'ensiie';
 
 insert into agent( name, token, id_company)
 SELECT 'main agent', 'mainAgentToken', id FROM company where name = 'root';
